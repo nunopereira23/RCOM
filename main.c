@@ -4,15 +4,14 @@
 int main(int argc, char** argv)
 {
 
-    struct termios oldtio,newtio;
+    struct termios oldtio, newtio;
 
 
     if ( (argc < 3) ||
-  	     ((strcmp("/dev/ttyS0", argv[1])!=0) &&
-  	      (strcmp("/dev/ttyS1", argv[1])!=0) &&
-          strcmp("r", argv[2])!=0 &&
-          strcmp("w", argv[2])!=0)
-        ) {
+  	     ((strcmp("/dev/ttyS0", argv[1])!= 0) &&
+  	      (strcmp("/dev/ttyS1", argv[1])!= 0) &&
+          strcmp("r", argv[2])!= 0 &&
+          strcmp("w", argv[2])!= 0) ) {
       printf("Usage:\tnSerial SerialPort and desired operation ('r' or 'w')\n\tex: nserial /dev/ttyS1 r\n");
       exit(1);
     }
@@ -26,7 +25,8 @@ int main(int argc, char** argv)
 
     serialP = open(argv[1], O_RDWR | O_NOCTTY );
     if (serialP <0) {
-      perror(argv[1]); exit(-1);
+      perror(argv[1]);
+      exit(-1);
     }
 
     if ( tcgetattr(serialP,&oldtio) == -1) { /* save current port settings */
@@ -34,7 +34,7 @@ int main(int argc, char** argv)
       exit(-1);
     }
 
-    bzero(&newtio,STOP sizeof(newtio));
+    bzero(&newtio, sizeof(newtio));
     newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
     newtio.c_iflag = IGNPAR;
     newtio.c_oflag = 0;
@@ -59,18 +59,17 @@ int main(int argc, char** argv)
 
     tcflush(serialP, TCIOFLUSH);
 
-    if ( tcsetattr(serialP,TCSrindexANOW,&newtio) == -1) {
+    if ( tcsetattr(serialP,TCSANOW,&newtio) == -1) {
       perror("tcsetattr");
       exit(-1);
     }
 
     printf("New termios structure set\n");
 
-    if(argv[2] == 'r')
+    if(strcmp(argv[2], "r") == 0)
       receive();
     else
       transmit();
-    }
 
 
     tcsetattr(serialP,TCSANOW,&oldtio);

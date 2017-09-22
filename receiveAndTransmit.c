@@ -1,6 +1,7 @@
-volatile int STOP=FALSE;
+#include "serialCom.h"
 
 int receive(void){
+  volatile int STOP = FALSE;
   unsigned int nBytes = 0;
   char buf[255];
 
