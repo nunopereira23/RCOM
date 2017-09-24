@@ -66,6 +66,7 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
+    printf("%s\n", argv[2]);
     if(strcmp(argv[2], "r") == 0)
       receive();
     else
