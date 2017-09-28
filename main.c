@@ -12,7 +12,7 @@ int main(int argc, char** argv)
   	      (strcmp("/dev/ttyS1", argv[1])!= 0) &&
           strcmp("r", argv[2])!= 0 &&
           strcmp("w", argv[2])!= 0) ) {
-      printf("Usage:\tnSerial SerialPort and desired operation ('r' or 'w')\n\tex: nserial /dev/ttyS1 r\n");
+      printf("Usage:\tnSerial SerialPort and desired operation ('r' or 'w')\n\tex: serialCom /dev/ttyS0 r\n");
       exit(1);
     }
 
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 
   /*
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
-    leitura do(s) pr�ximo(s) caracter(es)
+    leitura do(s) proximo(s) caracter(es)
   */
 
 
@@ -66,7 +66,6 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
-    printf("%s\n", argv[2]);
     if(strcmp(argv[2], "r") == 0)
       receive();
     else

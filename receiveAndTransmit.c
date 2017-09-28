@@ -7,9 +7,9 @@ int receive(void){
 
   while (STOP==FALSE) {       /* loop for input */
     nBytes = read(serialP,buf,255);
+    buf[nBytes]=0;
     if (index(buf, '\0') != NULL)
      STOP=TRUE;
-    buf[nBytes]=0;
     printf(":%s:%d\n", buf, nBytes); /* so we can printf... */
   }
 
@@ -18,18 +18,19 @@ int receive(void){
 
 int transmit(void){
   char buf[255];
-  int stdinCopy = dup(STDIN_FILENO);
+  //int stdinCopy = dup(STDIN_FILENO);
 
-  if(dup2(STDIN_FILENO, serialP) == -1)
-    perror("Failed redirecting stdin to the serial port");
-
+  // if(dup2(STDIN_FILENO, serialP) == -1)
+  //   perror("Failed redirecting stdin to the serial port");
+    //printf("Size buf: %lu\n", sizeof(buf));
     read(STDIN_FILENO, buf, sizeof(buf));
     while(index(buf, '\0') != NULL){
       read(STDIN_FILENO, buf, sizeof(buf));
+      write(serialP, buf, sizeof(buf));
     }
 
     //Restoring stdin to its original state
-    dup2(stdinCopy, STDIN_FILENO);
+    // dup2(stdinCopy, STDIN_FILENO);
 
   return 0;
 }
