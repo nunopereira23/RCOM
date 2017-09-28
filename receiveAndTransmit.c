@@ -4,13 +4,21 @@ int receive(void){
   volatile int STOP = FALSE;
   unsigned int nBytes = 0;
   char buf[255];
+  int c;
 
   while (STOP==FALSE) {       /* loop for input */
-    nBytes = read(serialP,buf,255);
-    buf[nBytes]=0;
-    if (index(buf, '\0') != NULL)
-     STOP=TRUE;
+    it += read(serialP, &c, 1);
+
+    strcat(buf, &c);
     printf(":%s:%d\n", buf, nBytes); /* so we can printf... */
+    if (buf[it] == '\0')
+     STOP=TRUE;
+    else{
+      if(it == 255){
+        it = 0;
+        bzero(buf, sizeof(buf));
+     }
+    }
   }
 
   return 0;
@@ -26,7 +34,7 @@ int transmit(void){
     read(STDIN_FILENO, buf, sizeof(buf));
     while(index(buf, '\0') != NULL){
       read(STDIN_FILENO, buf, sizeof(buf));
-      write(serialP, buf, sizeof(buf));
+      write(serialP, buf, strlen(buf));
     }
 
     //Restoring stdin to its original state
