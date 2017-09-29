@@ -4,37 +4,28 @@ int receive(void){
   volatile int STOP = FALSE;
   unsigned int nBytes = 0;
   char buf[255];
-  int c;
 
   while (STOP==FALSE) {       /* loop for input */
-    it += read(serialP, &c, 1);
-
-    strcat(buf, &c);
+    bzero(buf, sizeof(buf));
+    nBytes = read(serialP, buf,sizeof(buf));
+    buf[nBytes] = 0;
     printf(":%s:%d\n", buf, nBytes); /* so we can printf... */
-    if (buf[it] == '\0')
+    if (buf[0] == '\n')
      STOP=TRUE;
-    else{
-      if(it == 255){
-        it = 0;
-        bzero(buf, sizeof(buf));
-     }
-    }
-  }
-
-  return 0;
+   }
+   return 0;
 }
 
 int transmit(void){
   char buf[255];
-  //int stdinCopy = dup(STDIN_FILENO);
+  unsigned int nBytes;
 
-  // if(dup2(STDIN_FILENO, serialP) == -1)
-  //   perror("Failed redirecting stdin to the serial port");
-    //printf("Size buf: %lu\n", sizeof(buf));
-    read(STDIN_FILENO, buf, sizeof(buf));
-    while(index(buf, '\0') != NULL){
-      read(STDIN_FILENO, buf, sizeof(buf));
-      write(serialP, buf, strlen(buf));
+
+      while (buf[0] != '\n') {
+      nBytes = read(STDIN_FILENO, buf, sizeof(buf));
+      printf("%d\n", nBytes);
+      buf[nBytes-1] = '\0';
+      write(serialP, buf, strlen(buf)+1);
     }
 
     //Restoring stdin to its original state
