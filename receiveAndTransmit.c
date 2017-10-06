@@ -1,5 +1,6 @@
 #include "serialCom.h"
-
+#define TRANSMISSOR 1
+#define RECEIVER 0
 int receive(void){
   volatile int STOP = FALSE;
   unsigned int nBytes = 0;
@@ -32,4 +33,51 @@ int transmit(void){
     // dup2(stdinCopy, STDIN_FILENO);
 
   return 0;
+}
+
+/**
+* @ Establishes a serial connection between two machines
+* @ parm port -
+* @ parm flag - boolean flag, 0 for emmisor and 1 stands for receiver
+*/
+int llopen(int port, char flag){
+
+  if(flag != TRANSMISSOR && flag != RECEIVER){
+    perror("llopen()::Couldn't open serialPort fd\n");
+    return -1;
+  }
+  //TODO test if port is between range
+  char path = "/dev/ttyS", portString[2];
+
+  portString[0] =  port + '0';
+  portString[1] = '\0';
+
+  strcat(path, &portString);
+
+  if(open(path, O_RDWR | O_NOCTTY ) < 0){
+    perror("llopen()::Couldn't open serialPort fd\n");
+    return -1;
+  }
+
+  if(flag == TRANSMISSOR){
+    int disconnect = 0, state = ;
+    struct sigaction sigact;
+    sigact.sa_handler = alarmHandler;
+    sigact.sa_flags = 0;
+
+    if(sigaction(SIGALARM, &sigact, NULL) != 0){
+      perror("llopen()::receiver failed to install the signal handler\n");
+      return -1;
+    }
+
+    while(!disconnect){
+      switch (state) {
+        case /* value */:
+      }
+    }
+
+  }
+  else{
+
+  }
 }

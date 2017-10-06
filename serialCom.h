@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
+
 
 #define BAUDRATE B38400
 //#define MODEMDEVICE "/dev/ttyS1"
@@ -20,5 +22,19 @@ int serialP; //SerialPort File descriptor
 
 int receive(void);
 int transmit(void);
+int llopen(int port, char transmissor);
+
+//SerialPort Control messages - Supervision
+#define Flag 0x7E
+#define Address 0x03 //A
+//Control Field - C
+#define SET 0x03
+#define DISC  0x0B
+#define UA  0x07
+
+  //Receive fields MSbit R = N(r)
+  #define RR  0x05
+  #define REJ 0x01
+//BCC1  xor(A, C) // Address ^ Control
 
 #endif
