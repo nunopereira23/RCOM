@@ -1,6 +1,9 @@
 #include "serialCom.h"
+#include "stateMachines.h"
 #define TRANSMISSOR 1
 #define RECEIVER 0
+int retryCount;
+
 int receive(void){
   volatile int STOP = FALSE;
   unsigned int nBytes = 0;
@@ -35,12 +38,18 @@ int transmit(void){
   return 0;
 }
 
+void* alarmHandler(int sigNum){
+  retryCount++;
+}
+
+
 /**
 * @ Establishes a serial connection between two machines
 * @ parm port -
 * @ parm flag - boolean flag, 0 for emmisor and 1 stands for receiver
 */
 int llopen(int port, char flag){
+  unsigned int retryCount = 0, remainder;
 
   if(flag != TRANSMISSOR && flag != RECEIVER){
     perror("llopen()::Couldn't open serialPort fd\n");
@@ -54,13 +63,13 @@ int llopen(int port, char flag){
 
   strcat(path, &portString);
 
-  if(open(path, O_RDWR | O_NOCTTY ) < 0){
+  if((serialPort = open(path, O_RDWR | O_NOCTTY )) < 0){
     perror("llopen()::Couldn't open serialPort fd\n");
     return -1;
   }
 
   if(flag == TRANSMISSOR){
-    int disconnect = 0, state = ;
+    int disconnect = 0, state = 0;
     struct sigaction sigact;
     sigact.sa_handler = alarmHandler;
     sigact.sa_flags = 0;
@@ -72,11 +81,21 @@ int llopen(int port, char flag){
 
     while(!disconnect){
       switch (state) {
-        case /* value */:
+        case  SET_STATE:
+        transmit(path, SET); //Send set message
+        if( (remainder = alarm(3)) != 0){
+          perror("Alarm already scheduled in %d seconds\n", remainder);
+        }
+        break;
+        case  WAIT_UA:
+
+        break;
+
       }
     }
 
   }
+
   else{
 
   }

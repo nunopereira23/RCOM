@@ -23,6 +23,7 @@ int serialP; //SerialPort File descriptor
 int receive(void);
 int transmit(void);
 int llopen(int port, char transmissor);
+void* alarmHandler(int sigNum);
 
 //SerialPort Control messages - Supervision
 #define Flag 0x7E
