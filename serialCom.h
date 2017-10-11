@@ -18,16 +18,20 @@
 #define FALSE 0
 #define TRUE 1
 
+#define TRANSMISSOR 1
+#define RECEIVER 0
+#define N_TRIES 3
+
 int serialP; //SerialPort File descriptor
 
-int receive(void);
-int transmit(void);
+int transmit(int fd, char message[], unsigned int size);
+int receive(int fd, char message[], unsigned int size);
 int llopen(int port, char transmissor);
-void* alarmHandler(int sigNum);
+void alarmHandler(int sigNum);
 
 //SerialPort Control messages - Supervision
-#define Flag 0x7E
-#define Address 0x03 //A
+#define FLAG 0x7E
+#define ADDRESS 0x03 //A
 //Control Field - C
 #define SET 0x03
 #define DISC  0x0B

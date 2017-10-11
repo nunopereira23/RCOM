@@ -21,8 +21,6 @@ int main(int argc, char** argv)
     Open serial port device for reading and writing and not as controlling tty
     because we don't want to get killed if linenoise sends CTRL-C.
   */
-
-
     serialP = open(argv[1], O_RDWR | O_NOCTTY );
     if (serialP <0) {
       perror(argv[1]);
@@ -44,18 +42,8 @@ int main(int argc, char** argv)
 
     // newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
     // newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
-    newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
-
-
-
-
-  /*
-    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
-    leitura do(s) proximo(s) caracter(es)
-  */
-
-
+    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
+    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
 
     tcflush(serialP, TCIOFLUSH);
 
@@ -64,12 +52,10 @@ int main(int argc, char** argv)
       exit(-1);
     }
 
-    printf("New termios structure set\n");
-
     if(strcmp(argv[2], "r") == 0)
-      receive();
+      llopen(0, RECEIVER);
     else
-      transmit();
+      llopen(0, TRANSMISSOR);
 
 
     tcsetattr(serialP,TCSANOW,&oldtio);
