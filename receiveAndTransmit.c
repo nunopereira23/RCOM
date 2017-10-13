@@ -123,7 +123,7 @@ int llopen(int port, char flag){
     while(!connected &&  retryCount != N_TRIES){
       if(state != SET_SEND){
         read(serialPort, &byte, 1);
-        printf("%x\n", byte);
+        printf("UA %x\n", byte);
       }
       switch (state) {
         case  SET_SEND:
@@ -142,9 +142,10 @@ int llopen(int port, char flag){
           state = START;
           break;
         case  START://UA State Machine
+            printf("START\n");
             if(byte == FLAG)
               state = FLAG_RCV;
-          break;
+            break;
 
           case FLAG_RCV:
             if(byte == ADDRESS)
@@ -183,6 +184,7 @@ int llopen(int port, char flag){
           case STOP:
           alarm(0); //Disables the alarm
           connected = TRUE;
+          printf("Received an UA\n");
           break;
         }
       }
