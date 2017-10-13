@@ -24,7 +24,7 @@
 
 int serialP; //SerialPort File descriptor
 
-int transmit(int fd, char message[], unsigned int size);
+//int transmit(int fd, char message[], unsigned int size);
 int receive(int fd, char message[], unsigned int size);
 int llopen(int port, char transmissor);
 void alarmHandler(int sigNum);
