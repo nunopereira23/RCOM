@@ -35,6 +35,7 @@ int receive(int fd, char message[], unsigned int size){
 
 void alarmHandler(int sigNum){
   retryCount++;
+  printf("Alarm triggered\n");
   state = SET_SEND;
 }
 
@@ -61,6 +62,8 @@ int llopen(int port, char flag){
 
   strcat(path, portString);
 
+
+  //printf("path %s\n", path);
   if((serialPort = open(path, O_RDWR | O_NOCTTY )) < 0){
     printf("llopen()::Couldn't open serialPort %d\n", port);
     return -1;
@@ -104,6 +107,7 @@ int llopen(int port, char flag){
 
   if(flag == TRANSMISSOR){
     int connected = 0;
+    retryCount = 0;
 
     struct sigaction sigact;
     sigact.sa_handler = alarmHandler;
@@ -117,15 +121,17 @@ int llopen(int port, char flag){
     state = SET_SEND;
 
     while(!connected &&  retryCount != N_TRIES){
-      if(state != SET_SEND)
+      if(state != SET_SEND){
         read(serialPort, &byte, 1);
+        printf("%x\n", byte);
+      }
       switch (state) {
         case  SET_SEND:
           message[0] = FLAG;
           message[1] = ADDRESS;
           message[2] = SET;
-          message[4] = SET ^ ADDRESS;
-          message[5] = FLAG;
+          message[3] = SET ^ ADDRESS;
+          message[4] = FLAG;
 
           write(serialPort, message, 5); //Send set message
           if(alarm(3) != 0){
@@ -192,6 +198,7 @@ int llopen(int port, char flag){
       state = START;
       while(!conEstab){
         read(serialPort, &byte, 1);
+        printf("%x\n", byte);
         switch (state) { //Check if SET Message is received
           case START:
             if(byte == FLAG)
@@ -241,8 +248,8 @@ int llopen(int port, char flag){
       message[0] = FLAG;
       message[1] = ADDRESS;
       message[2] = UA;
-      message[4] = UA ^ ADDRESS;
-      message[5] = FLAG;
+      message[3] = UA ^ ADDRESS;
+      message[4] = FLAG;
       if(write(serialPort, message, 5) == 0)
         printf("Failed to transmit an UA\n");
   }
