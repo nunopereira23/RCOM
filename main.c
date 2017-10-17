@@ -1,5 +1,5 @@
 /*Serial COM*/
-#include "serialCom.h"
+#include "linkLayer.h"
 
 int main(int argc, char** argv)
 {
@@ -13,9 +13,14 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-    if(strcmp(argv[2], "r") == 0)
-      llopen(argv[1][0] - '0', RECEIVER);
-    else
-      llopen(argv[1][0] - '0', TRANSMISSOR);
-    return 0;
+	if(strcmp(argv[2], "r") == 0){
+		if((linkLayer.fd = llopen(argv[1][0] - '0', RECEIVER)) < 0){
+				printf("Receiver failed to establish the connection\n");
+		}
+	}
+	else
+		if((linkLayer.fd = llopen(argv[1][0] - '0', TRANSMISSOR)) < 0)
+			printf("Transmissor failed to establish the connection\n");
+
+	return 0;
 }

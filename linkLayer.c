@@ -1,23 +1,23 @@
-#include "serialCom.h"
+#include "linkLayer.h"
 #include "stateMachines.h"
 
 unsigned int retryCount, state;
 
-int receive(int fd, char message[], unsigned int size){
-  volatile int stop = FALSE;
-  unsigned int nBytes = 0;
-  char buf[255];
-
-  while (stop==FALSE) {       /* loop for input */
-    bzero(buf, sizeof(buf));
-    nBytes = read(serialP, buf,sizeof(buf));
-    buf[nBytes] = 0;
-    //printf(":%s:%d\n", buf, nBytes); /* so we can printf... */
-    if (buf[0] == '\n')
-     stop=TRUE;
-   }
-   return 0;
-}
+// int receive(int fd, char message[], unsigned int size){
+//   volatile int stop = FALSE;
+//   unsigned int nBytes = 0;
+//   char buf[255];
+//
+//   while (stop==FALSE) {       /* loop for input */
+//     bzero(buf, sizeof(buf));
+//     nBytes = read(serialP, buf,sizeof(buf));
+//     buf[nBytes] = 0;
+//     //printf(":%s:%d\n", buf, nBytes); /* so we can printf... */
+//     if (buf[0] == '\n')
+//      stop=TRUE;
+//    }
+//    return 0;
+// }
 
 // int transmit(int fd, char message[], unsigned int size){
 //   char buf[255];
@@ -33,6 +33,11 @@ int receive(int fd, char message[], unsigned int size){
 //     return 0;
 // }
 
+/**
+* @ llopen() SigAlm handler, it increments nTries
+* and changes state to SET_SEND
+*/
+
 void alarmHandler(int sigNum){
   retryCount++;
   printf("Alarm triggered\n");
@@ -44,6 +49,7 @@ void alarmHandler(int sigNum){
 * @ Establishes a serial connection between two machines
 * @ parm port -
 * @ parm flag - boolean flag, 0 for emmisor and 1 stands for receiver
+* @ return return the serial port's fd or a negative number if an error occurs
 */
 int llopen(int port, char flag){
   int serialPort;
@@ -71,12 +77,6 @@ int llopen(int port, char flag){
 
 
   struct termios oldtio, newtio;
-
-
-/*
-  Open serial port device for reading and writing and not as controlling tty
-  because we don't want to get killed if linenoise sends CTRL-C.
-*/
 
   if ( tcgetattr(serialPort,&oldtio) == -1) { /* save current port settings */
     perror("tcgetattr");
@@ -133,7 +133,7 @@ int llopen(int port, char flag){
           message[4] = FLAG;
 
           write(serialPort, message, 5); //Send set message
-           if(alarm(10) != 0){
+           if(alarm(3) != 0){
              printf("Alarm already scheduled in seconds\n");
            }
           //WAIT FOR UA
@@ -267,4 +267,76 @@ int llopen(int port, char flag){
   }
 	printf("Connection established\n");
   return serialPort;
+}
+
+int receiveFrame(char frame[], int controlField){
+	int stop = 0;
+
+	int i = 0;
+	state = START;
+
+	while(!stop){
+		switch (state) {
+			case START:
+				read(linkLayer.fd, frame + i, 1);
+				if(frame[i] == FLAG){
+					state = FLAG_RCV;
+					i++;
+				}
+				break;
+			case FLAG_RCV:
+				read(linkLayer.fd, frame + i, 1);
+				if(frame[i] == ADDRESS){
+					state = A_RCV;
+					i++;
+				}
+				else if(frame[i] != FLAG){//Other unexpected info
+					state = START;
+					i = 0;
+				}
+				break;
+			case A_RCV:
+				read(linkLayer.fd, frame + i, 1);
+				if(controlField == INFO)
+					if(frame[i] == SEQ_NUM0 || frame[i] == SEQ_NUM1){
+
+				}
+				else if(frame[i] == controlField){
+					state = C_RCV;
+					i++;
+				}
+				break;
+			case C_RCV:
+				read(linkLayer.fd, frame + i, 1);
+				if(frame[i] == (ADDRESS ^ controlField)){
+					state = BCC1_OK;
+					i++;
+				}
+				break;
+			case BCC1_OK:
+				read(linkLayer.fd, frame + i, 1);
+				if(frame[i] == FLAG{
+					state = END;
+				}
+				break;
+			case END:
+				stop = 1;
+				break;
+		}
+	}
+}
+
+int llwrite(int fd, char* buffer, int length){
+		int bytesWritten = 0;
+
+		int nInfoFrames = lenght / frameLenght
+
+		int i;
+		for(i = 0; i < nInfoFrames; i++){
+			bytesWritten += writeFrame(buffer + i*frameLenght, frameLenght);
+			receiver()
+		 }
+
+
+		 return bytesWritten;
 }
