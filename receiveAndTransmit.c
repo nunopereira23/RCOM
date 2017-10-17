@@ -47,8 +47,8 @@ void alarmHandler(int sigNum){
 */
 int llopen(int port, char flag){
   int serialPort;
-  char message[5];
-  char byte;
+  unsigned char message[5];
+  unsigned char byte;
 
   if(flag != TRANSMISSOR && flag != RECEIVER){
     perror("llopen()::Couldn't open serialPort fd\n");
@@ -93,7 +93,7 @@ int llopen(int port, char flag){
 
   // newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
   // newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
-  newtio.c_cc[VTIME]    = 0.1;   /* inter-character timer unused */
+  newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
   newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
   tcflush(serialPort, TCIOFLUSH);
@@ -122,7 +122,7 @@ int llopen(int port, char flag){
     state = SET_SEND;
 
     while(!connected &&  retryCount != N_TRIES){
-      if(state != SET_SEND){
+      if(state != SET_SEND && state != END){
         read(serialPort, &byte, 1);
         printf("UA %x\n", byte);
       }
@@ -135,9 +135,9 @@ int llopen(int port, char flag){
           message[4] = FLAG;
 
           write(serialPort, message, 5); //Send set message
-          if(alarm(3) != 0){
-            printf("Alarm already scheduled in seconds\n");
-          }
+          // if(alarm(3) != 0){
+          //   printf("Alarm already scheduled in seconds\n");
+          // }
           //WAIT FOR UA
           state = START;
           //printf("State\n");
@@ -206,8 +206,11 @@ int llopen(int port, char flag){
       unsigned int conEstab = 0;
       state = START;
       while(!conEstab){
-        read(serialPort, &byte, 1);
-        printf("%x\n", byte);
+        printf("Receiver State %d\n", state);
+        if(state != END){
+          read(serialPort, &byte, 1);
+          printf("%x\n", byte);
+        }
         switch (state) { //Check if SET Message is received
           case START:
             if(byte == FLAG)
@@ -249,11 +252,14 @@ int llopen(int port, char flag){
           break;
 
           case END:
+            printf("Connection established\n");
             conEstab = TRUE;
+          break;
         }
       }
 
       //After a successful SET message was received, send a UA
+      printf("Starting to send UA\n");
       message[0] = FLAG;
       message[1] = ADDRESS;
       message[2] = UA;
