@@ -93,7 +93,7 @@ int llopen(int port, char flag){
 
   // newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
   // newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
-  newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
+  newtio.c_cc[VTIME]    = 0.1;   /* inter-character timer unused */
   newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
   tcflush(serialPort, TCIOFLUSH);
@@ -117,6 +117,7 @@ int llopen(int port, char flag){
       perror("llopen()::receiver failed to install the signal handler\n");
       return -1;
     }
+    // signal(SIGALRM, alarmHandler);
 
     state = SET_SEND;
 
@@ -137,19 +138,20 @@ int llopen(int port, char flag){
           if(alarm(3) != 0){
             printf("Alarm already scheduled in seconds\n");
           }
-
           //WAIT FOR UA
           state = START;
+          //printf("State\n");
           break;
         case  START://UA State Machine
-            printf("START\n");
+            //printf("START\n");
             if(byte == FLAG)
               state = FLAG_RCV;
             break;
 
           case FLAG_RCV:
-            if(byte == ADDRESS)
+            if(byte == ADDRESS){
               state = A_RCV;
+            }
             else if(byte == FLAG)
               state = FLAG_RCV;
             else
@@ -157,6 +159,7 @@ int llopen(int port, char flag){
           break;
 
           case A_RCV:
+          //printf("Reached Address Received\n");
             if(byte == UA)
               state = UA_RCV;
             else if(byte == FLAG)
@@ -166,6 +169,7 @@ int llopen(int port, char flag){
           break;
 
           case UA_RCV:
+          //printf("Reached UA (C) Received\n");
             if(byte == (ADDRESS ^ UA))
               state = BCC_OK;
             else if(byte == FLAG)
@@ -175,16 +179,19 @@ int llopen(int port, char flag){
           break;
 
           case BCC_OK:
-            if(byte == FLAG)
-              state = STOP;
+            if(byte == FLAG){
+              state = END;
+              printf("Reached BCC_Ok, state %d\n", state);
+            }
             else
               state = START;
           break;
 
-          case STOP:
-          alarm(0); //Disables the alarm
-          connected = TRUE;
-          printf("Received an UA\n");
+          case END:
+            printf("Right Before Disabling Alarm\n");
+            alarm(0); //Disables the alarm
+            connected = TRUE;
+            printf("Received an UA\n");
           break;
         }
       }
@@ -236,12 +243,12 @@ int llopen(int port, char flag){
 
           case BCC_OK:
             if(byte == FLAG)
-              state = STOP;
+              state = END;
             else
               state = START;
           break;
 
-          case STOP:
+          case END:
             conEstab = TRUE;
         }
       }

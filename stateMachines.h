@@ -7,12 +7,7 @@
 #define A_RCV 3
 #define UA_RCV 4
 #define BCC_OK 5
-#define STOP 6
+#define END 6
 #define SET_RCV 7
-
-
-
-//RECEIVER UA
-
 
 #endif
