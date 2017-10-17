@@ -91,8 +91,6 @@ int llopen(int port, char flag){
   /* set input mode (non-canonical, no echo,...) */
   newtio.c_lflag = 0;
 
-  // newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-  // newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
   newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
   newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
@@ -135,9 +133,9 @@ int llopen(int port, char flag){
           message[4] = FLAG;
 
           write(serialPort, message, 5); //Send set message
-          // if(alarm(3) != 0){
-          //   printf("Alarm already scheduled in seconds\n");
-          // }
+           if(alarm(10) != 0){
+             printf("Alarm already scheduled in seconds\n");
+           }
           //WAIT FOR UA
           state = START;
           //printf("State\n");
@@ -181,7 +179,7 @@ int llopen(int port, char flag){
           case BCC_OK:
             if(byte == FLAG){
               state = END;
-              printf("Reached BCC_Ok, state %d\n", state);
+              //printf("Reached BCC_Ok, state %d\n", state);
             }
             else
               state = START;
@@ -206,7 +204,7 @@ int llopen(int port, char flag){
       unsigned int conEstab = 0;
       state = START;
       while(!conEstab){
-        printf("Receiver State %d\n", state);
+        // printf("Receiver State %d\n", state); DEBUG
         if(state != END){
           read(serialPort, &byte, 1);
           printf("%x\n", byte);
@@ -252,7 +250,6 @@ int llopen(int port, char flag){
           break;
 
           case END:
-            printf("Connection established\n");
             conEstab = TRUE;
           break;
         }
@@ -268,5 +265,6 @@ int llopen(int port, char flag){
       if(write(serialPort, message, 5) == 0)
         printf("Failed to transmit an UA\n");
   }
+	printf("Connection established\n");
   return serialPort;
 }
