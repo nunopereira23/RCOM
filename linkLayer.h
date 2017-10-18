@@ -54,6 +54,7 @@ void alarmHandler(int sigNum);
 //SerialPort Control messages - Supervision
 #define FLAG 0x7E
 #define ADDRESS 0x03 //A
+#define ADDRESS1 0x01 //A
 //Control Field - C
 #define SET 0x03
 #define DISC  0x0B

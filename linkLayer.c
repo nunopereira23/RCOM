@@ -269,7 +269,7 @@ int llopen(int port, char flag){
   return serialPort;
 }
 
-int receiveFrame(char frame[], int controlField){
+int receiveFrame(char frame[], int controlField){ //ADDRESS 0x03 or 0x01
 	int stop = 0;
 
 	int i = 0;
@@ -334,9 +334,71 @@ int llwrite(int fd, char* buffer, int length){
 		int i;
 		for(i = 0; i < nInfoFrames; i++){
 			bytesWritten += writeFrame(buffer + i*frameLenght, frameLenght);
-			receiver()
+			receiver();
 		 }
 
 
 		 return bytesWritten;
+}
+
+//new
+int llread(int fd, char* buffer){
+int bytesRead = 0;
+
+}
+
+
+int llclose(int port, char flag){
+
+int r; //different functions return
+	if (flag == TRANSMISSOR){
+
+	unsigned char disc_msg;
+	disc_msg[0] = FLAG;
+        disc_msg[1] = ADDRESS;
+        disc_msg[2] = DISC;
+        disc_msg[3] = DISC ^ ADDRESS;
+        disc_msg[4] = FLAG;
+	
+	unsigned char ua_msg;
+	ua_msg[0] = FLAG;
+      	ua_msg[1] = ADDRESS1;
+      	ua_msg[2] = UA;
+      	ua_msg[3] = UA ^ ADDRESS1;
+      	ua_msg[4] = FLAG;
+
+        write(linkLayer.fd, disc_msg, 5);
+		
+		//missing arguments controlfield DISC + ADDRESS1
+		if((r=receiveFrame(/*...*/))== 0){  
+
+			if(write(linkLayer.fd, ua_msg, 5) == 0)
+       			printf("Failed to transmit an UA\n");
+		} 
+	} 
+	else 
+	{
+
+	unsigned char disc_msg1;
+	disc_msg[0] = FLAG;
+        disc_msg[1] = ADDRESS1;
+        disc_msg[2] = DISC;
+        disc_msg[3] = DISC ^ ADDRESS1;
+        disc_msg[4] = FLAG;
+	
+		//missing arguments controlfield DISC + ADDRESS
+		if((r=receiveFrame(/*...*/))== 0){  //on success
+		
+		write(linkLayer.fd, disc_msg1, 5);
+			
+			//missing arguments controlfield UA + ADDRESS1
+			if(receiveFrame(/*...*/)==0){ //on success
+			return 0;
+			}
+			else 
+			{
+			return -1;
+			}		
+		}
+	}
 }
