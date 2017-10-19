@@ -74,4 +74,10 @@ void alarmHandler(int sigNum);
     #define REJ_1 0x81
 //BCC1  xor(A, C) // Address ^ Control
 
+//stuffing
+
+#define ESC 0x7d
+#define ESC_EX 0x5d
+#define FLAG_EX 0x5e
+
 #endif

@@ -411,3 +411,77 @@ int receiveFrame(unsigned char frame[], unsigned char controlField){ //ADDRESS 0
 // 		}
 // 	}
 // }
+
+/*
+char * stuffing(char frame[], unsigned int frameSize){//TODO test function
+
+  int i;
+  int newFrameSize=frameSize;
+
+  for(i=1; i< (frameSize-1);i++){
+    if(frame[i]== FLAG || frame[i]== ESC)
+    newFrameSize++;
+  }
+
+  char stuffedFrame[newFrameSize];
+  int j=1;
+  stuffedFrame[0]=frame[0];
+  stuffedFrame[newFrameSize-1] = frame[frameSize-1];
+
+  for(i=1; i<(frameSize-1);i++){
+    if(frame[i]==FLAG){
+      stuffedFrame[j]= ESC;
+      j++;
+      stuffedFrame[j]= FLAG_EX;
+    }
+    else if(frame[i]==ESC){
+      stuffedFrame[j]= ESC;
+      j++;
+      stuffedFrame[j]= ESC_EX;
+    }
+    else {
+      stuffedFrame[j]=frame[i];
+    }
+    j++;
+  }
+  return stuffedFrame;
+}
+
+
+char * unstuffing(char stuffedFrame[], unsigned int frameSize){ //TODO test function
+
+  int i;
+  int newFrameSize=frameSize;
+
+  for(i=1; i< (frameSize-1);i++){
+    if(stuffedFrame[i]== ESC)
+    newFrameSize--;
+  }
+
+  char frame[newFrameSize];
+  int j=1;
+  frame[0]=stuffedFrame[0];
+  frame[frameSize-1]=stuffedFrame[newFrameSize-1];
+
+  for(i=1; i<(frameSize-1);i++){
+    if(stuffedFrame[i]==ESC){
+      i++;
+      if(stuffedFrame[i]==FLAG_EX){
+        frame[j]= FLAG;
+      }
+      else if(stuffedFrame[i]==ESC_EX){
+        frame[j]= ESC;
+      }
+      else{
+        printf("Unstuffing error\n");
+        return -1;
+      }
+    }
+    else {
+      frame[j]=stuffedFrame[i];
+    }
+    j++;
+  }
+  return frame;
+}
+*/
