@@ -51,6 +51,11 @@ void alarmHandler(int sigNum);
 
 
 
+//Info Frame
+#define INFO 30
+#define SEQ_NUM0 0
+#define SEQ_NUM1 0x40
+
 //SerialPort Control messages - Supervision
 #define FLAG 0x7E
 #define ADDRESS 0x03 //A
@@ -62,7 +67,11 @@ void alarmHandler(int sigNum);
 
   //Receive fields MSbit R = N(r)
   #define RR  0x05
+    #define RR_0 0x05
+    #define RR_1 0x85
   #define REJ 0x01
+    #define REJ_0 0x01
+    #define REJ_1 0x81
 //BCC1  xor(A, C) // Address ^ Control
 
 #endif

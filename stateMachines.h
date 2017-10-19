@@ -10,4 +10,9 @@
 #define END 6
 #define SET_RCV 7
 
+#define C_RCV 7
+#define BCC1_OK 8
+#define BCC2_OK 9
+
+
 #endif
