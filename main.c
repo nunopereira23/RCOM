@@ -13,6 +13,8 @@ int main(int argc, char** argv)
     exit(1);
   }
 
+  LinkLayer linkLayer;
+
 	if(strcmp(argv[2], "r") == 0){
 		if((linkLayer.fd = llopen(argv[1][0] - '0', RECEIVER)) < 0){
 				printf("Receiver failed to establish the connection\n");

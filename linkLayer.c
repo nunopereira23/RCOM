@@ -275,7 +275,7 @@ int llopen(int port, char flag){
 * @param controlField expected  frame's control field
 * @return boolean acessing whether the frame was of the same kind as controlField
 */
-int receiveFrame(unsigned char frame[], unsigned char controlField){ //ADDRESS 0x03 or 0x01
+int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x03 or 0x01
 	int stop = 0;
 
 	int i = 0;
@@ -284,46 +284,53 @@ int receiveFrame(unsigned char frame[], unsigned char controlField){ //ADDRESS 0
 	while(!stop){
 		switch (state) {
 			case START:
-				read(linkLayer.fd, frame + i, 1);
-				if(frame[i] == FLAG){
+				read(linkLayer->fd, linkLayer->frame + i, 1);
+				if(linkLayer->frame[i] == FLAG){
 					state = FLAG_RCV;
 					i++;
 				}
 				break;
 			case FLAG_RCV:
-				read(linkLayer.fd, frame + i, 1);
-				if(frame[i] == ADDRESS){
+				read(linkLayer->fd, linkLayer->frame + i, 1);
+				if(linkLayer->frame[i] == ADDRESS){
 					state = A_RCV;
 					i++;
 				}
-				else if(frame[i] != FLAG){//Other unexpected info
+				else if(linkLayer->frame[i] != FLAG){//Other unexpected info
 					state = START;
 					i = 0;
 				}
 				break;
 			case A_RCV:
-				read(linkLayer.fd, frame + i, 1);
+				read(linkLayer->fd, linkLayer->frame + i, 1);
 				if(controlField == INFO){
-					if(frame[i] == SEQ_NUM0 || frame[i] == SEQ_NUM1){
-
+					if(linkLayer->frame[i] == SEQ_NUM0 || linkLayer->frame[i] == SEQ_NUM1){
+            linkLayer->seqNum = linkLayer->frame[i] >> 6;
             i++;
+            read(linkLayer->fd, linkLayer->frame + i, 1);
+            if((linkLayer->frame[i-2] ^ linkLayer->frame[i-1]) == linkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
+              if(readData(linkLayer) != 0){
+                i--;
+              }
+              return 0;
+            }
 		      }
         }
-				else if(frame[i] == controlField){
+				else if(linkLayer->frame[i] == controlField){
 					state = C_RCV;
 					i++;
 				}
 				break;
 			case C_RCV:
-				read(linkLayer.fd, frame + i, 1);
-				if(frame[i] == (ADDRESS ^ controlField)){
+				read(linkLayer->fd, linkLayer->frame + i, 1);
+				if(linkLayer->frame[i] == (ADDRESS ^ controlField)){
 					state = BCC1_OK;
 					i++;
 				}
 				break;
 			case BCC1_OK:
-				read(linkLayer.fd, frame + i, 1);
-				if(frame[i] == FLAG){
+				read(linkLayer->fd, linkLayer->frame + i, 1);
+				if(linkLayer->frame[i] == FLAG){
 					state = END;
 				}
 				break;
@@ -333,6 +340,45 @@ int receiveFrame(unsigned char frame[], unsigned char controlField){ //ADDRESS 0
 		}
 	}
   return 0;
+}
+
+int readData(LinkLayer* lk){
+  char stop = 0;
+  unsigned int i = 0;
+  while(!stop){
+    if(read(lk->fd, &lk->frame[i], 1) == 1)
+      lk->readBytes ++;
+
+    if(lk->frame[i] == FLAG){
+      stop = 1;
+      lk->readBytes --; //Subtracted non data - wrong increment
+    }
+  }
+  if(destuffing(lk) != 0){
+    printf("Destuffing Error\n");
+    return 1;
+  }
+
+  if(bcc2Check(lk)){
+    printf("Failed BCC2 check\n");
+    return 1;
+  }
+
+  return 0;
+}
+
+int bcc2Check(LinkLayer* lk){
+  int i;
+  char xorResult = lk->frame[0]; //D0
+  for (i = 1; i < lk->frameSize-1; i++) {
+    xorResult ^= lk->frame[i];
+  }
+                      /*BCC2*/
+  if(xorResult != lk->frame[lk->frameSize-1])
+    return 1;
+
+  lk->frameSize --;
+  return 0; //BCC2 field is correct
 }
 
 // int llwrite(int fd, char* buffer, int length){
@@ -376,12 +422,12 @@ int receiveFrame(unsigned char frame[], unsigned char controlField){ //ADDRESS 0
 //       	ua_msg[3] = UA ^ ADDRESS1;
 //       	ua_msg[4] = FLAG;
 //
-//         write(linkLayer.fd, disc_msg, 5);
+//         write(linkLayer->fd, disc_msg, 5);
 //
 // 		//missing arguments controlfield DISC + ADDRESS1
 // 		if((r=receiveFrame(/*...*/))== 0){
 //
-// 			if(write(linkLayer.fd, ua_msg, 5) == 0)
+// 			if(write(linkLayer->fd, ua_msg, 5) == 0)
 //        			printf("Failed to transmit an UA\n");
 // 		}
 // 	}
@@ -398,7 +444,7 @@ int receiveFrame(unsigned char frame[], unsigned char controlField){ //ADDRESS 0
 // 		//missing arguments controlfield DISC + ADDRESS
 // 		if((r=receiveFrame(/*...*/))== 0){  //on success
 //
-// 		write(linkLayer.fd, disc_msg1, 5);
+// 		write(linkLayer->fd, disc_msg1, 5);
 //
 // 			//missing arguments controlfield UA + ADDRESS1
 // 			if(receiveFrame(/*...*/)==0){ //on success
@@ -446,42 +492,28 @@ char * stuffing(char frame[], unsigned int frameSize){//TODO test function
   }
   return stuffedFrame;
 }
+*/
 
+int destuffing(LinkLayer* lk){ //TODO test function
 
-char * unstuffing(char stuffedFrame[], unsigned int frameSize){ //TODO test function
+  unsigned int i, deletedBytes = 0;
 
-  int i;
-  int newFrameSize=frameSize;
-
-  for(i=1; i< (frameSize-1);i++){
-    if(stuffedFrame[i]== ESC)
-    newFrameSize--;
-  }
-
-  char frame[newFrameSize];
-  int j=1;
-  frame[0]=stuffedFrame[0];
-  frame[frameSize-1]=stuffedFrame[newFrameSize-1];
-
-  for(i=1; i<(frameSize-1);i++){
-    if(stuffedFrame[i]==ESC){
-      i++;
-      if(stuffedFrame[i]==FLAG_EX){
-        frame[j]= FLAG;
+  for(i=0; i< lk->frameSize; i++){
+    if(lk->frame[i] == ESC){
+      if(lk->frame[i]==FLAG_EX){
+        lk->frame[i+1]= FLAG;
       }
-      else if(stuffedFrame[i]==ESC_EX){
-        frame[j]= ESC;
+      else if(lk->frame[i]==ESC_EX){
+        lk->frame[i+1]= ESC;
       }
       else{
         printf("Unstuffing error\n");
         return -1;
       }
+      memmove(&lk->frame[i], &lk->frame[i+1], lk->frameSize - (i+1));
+      deletedBytes++;
     }
-    else {
-      frame[j]=stuffedFrame[i];
-    }
-    j++;
   }
-  return frame;
+  lk->frameSize -= deletedBytes;
+  return 0;
 }
-*/

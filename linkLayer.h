@@ -18,15 +18,15 @@
 
 
 typedef struct {
-char fd; /*Dispositivo /dev/ttySx, x = 0, 1*/
+char fd; /* /dev/ttySx File descriptor/*/
 int baudRate; /*Velocidade de transmissão*/
-unsigned int seqNumber;   /*Número de sequência da trama: 0, 1*/
+unsigned int seqNum;   /*Número de sequência da trama: 0, 1*/
 unsigned int timeout; /*Valor do temporizador: 1 s*/
 unsigned int numTransmissions; /*Número de tentativas em caso de falha*/
+unsigned int frameSize;
+unsigned int readBytes;
 char frame[Frame_Size]; /*Trama*/
 } LinkLayer;
-
-LinkLayer linkLayer;
 
 #define BAUDRATE B38400
 //#define MODEMDEVICE "/dev/ttyS1"
@@ -42,7 +42,13 @@ LinkLayer linkLayer;
 // int serialP; //SerialPort File descriptor
 
 //int transmit(int fd, char message[], unsigned int size);
-int receive(int fd, char message[], unsigned int size);
+int receiveframe(LinkLayer* linkLayer, unsigned char controlField);
+int readData(LinkLayer* lk);
+int bcc2Check(LinkLayer* lk);
+int destuffing(LinkLayer* lk);
+int stuffing(LinkLayer* lk);
+
+
 
 int llwrite(int fd, char * buffer, int length);
 int llopen(int port, char transmissor);
