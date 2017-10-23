@@ -3,36 +3,6 @@
 
 unsigned int retryCount, state;
 
-// int receive(int fd, char message[], unsigned int size){
-//   volatile int stop = FALSE;
-//   unsigned int nBytes = 0;
-//   char buf[255];
-//
-//   while (stop==FALSE) {       /* loop for input */
-//     bzero(buf, sizeof(buf));
-//     nBytes = read(serialP, buf,sizeof(buf));
-//     buf[nBytes] = 0;
-//     //printf(":%s:%d\n", buf, nBytes); /* so we can printf... */
-//     if (buf[0] == '\n')
-//      stop=TRUE;
-//    }
-//    return 0;
-// }
-
-// int transmit(int fd, char message[], unsigned int size){
-//   char buf[255];
-//   unsigned int nBytes;
-//
-//
-//   while (buf[0] != '\n') {
-//     nBytes = read(STDIN_FILENO, buf, sizeof(buf));
-//     //printf("%d\n", nBytes);
-//     buf[nBytes-1] = '\0';
-//     write(serialP, buf, strlen(buf)+1);
-//   }
-//     return 0;
-// }
-
 /**
 * @ llopen() SigAlm handler, it increments nTries
 * and changes state to SET_SEND
@@ -100,8 +70,15 @@ int llopen(int port, char flag){
     perror("tcsetattr");
     exit(-1);
   }
-
-
+//     LinkLayer lk; //TO TEST receiveframe()
+//     lk.fd = serialPort;
+//     receiveframe(&lk, INFO);
+//     int i;
+//     for(i = 0; i < 12; i++)
+//     printf("%02x |", lk.frame[i]);
+// 
+// printf("\n");
+// return 0;
 
   if(flag == TRANSMISSOR){
     int connected = 0;
@@ -157,7 +134,7 @@ int llopen(int port, char flag){
           break;
 
           case A_RCV:
-          //printf("Reached Address Received\n");
+          //printreceiveframef("Reached Address Received\n");
             if(byte == UA)
               state = UA_RCV;
             else if(byte == FLAG)
@@ -272,7 +249,7 @@ int llopen(int port, char flag){
 /**
 * Generic frame receiver, it can handle Info Frames as well as Supervision Frame_Size
 * @param frame
-* @param controlField expected  frame's control field
+* @param controlField expected  frame's contcontrolFieldrol field
 * @return boolean acessing whether the frame was of the same kind as controlField
 */
 int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x03 or 0x01
@@ -323,7 +300,7 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
 				break;
 			case C_RCV:
 				read(linkLayer->fd, linkLayer->frame + i, 1);
-				if(linkLayer->frame[i] == (ADDRESS ^ controlField)){
+				if(linkLayer->frame[i] == (ADDRESS ^ linkLayer->frame[i-1])){
 					state = BCC1_OK;
 					i++;
 				}
@@ -345,15 +322,21 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
 int readData(LinkLayer* lk){
   char stop = 0;
   unsigned int i = 0;
+  lk->readBytes = 0;
   while(!stop){
-    if(read(lk->fd, &lk->frame[i], 1) == 1)
+    if(read(lk->fd, &lk->frame[i], 1) == 1){
       lk->readBytes ++;
+      i++;
+    }
 
-    if(lk->frame[i] == FLAG){
+    if(lk->frame[i-1] == FLAG){
       stop = 1;
       lk->readBytes --; //Subtracted non data - wrong increment
     }
   }
+  
+    lk->frameSize = lk->readBytes; //FrameSize -> data + bbc2
+    
   if(destuffing(lk) != 0){
     printf("Destuffing Error\n");
     return 1;
@@ -370,6 +353,7 @@ int readData(LinkLayer* lk){
 int bcc2Check(LinkLayer* lk){
   int i;
   char xorResult = lk->frame[0]; //D0
+  printf("BCC2Check %d\n", lk->frameSize);
   for (i = 1; i < lk->frameSize-1; i++) {
     xorResult ^= lk->frame[i];
   }
@@ -377,122 +361,11 @@ int bcc2Check(LinkLayer* lk){
   if(xorResult != lk->frame[lk->frameSize-1])
     return 1;
 
-  lk->frameSize --;
+  lk->frameSize --;//BCC2 Ignored (Deleted)
   return 0; //BCC2 field is correct
 }
 
-// int llwrite(int fd, char* buffer, int length){
-// 		int bytesWritten = 0;
-//
-// 		int nInfoFrames = lenght / frameLenght
-//
-// 		int i;
-// 		for(i = 0; i < nInfoFrames; i++){
-// 			bytesWritten += writeFrame(buffer + i*frameLenght, frameLenght);
-// 			receiver();
-// 		 }
-//
-//
-// 		 return bytesWritten;
-// }
-//
-// //new
-// int llread(int fd, char* buffer){
-//   int bytesRead = 0;
-//
-// }
-//
-//
-// int llclose(int port, char flag){
-//
-//   int r; //different functions return
-// 	if (flag == TRANSMISSOR){
-//
-// 	unsigned char disc_msg;
-// 	disc_msg[0] = FLAG;
-//         disc_msg[1] = ADDRESS;
-//         disc_msg[2] = DISC;
-//         disc_msg[3] = DISC ^ ADDRESS;
-//         disc_msg[4] = FLAG;
-//
-// 	unsigned char ua_msg;
-// 	ua_msg[0] = FLAG;
-//       	ua_msg[1] = ADDRESS1;
-//       	ua_msg[2] = UA;
-//       	ua_msg[3] = UA ^ ADDRESS1;
-//       	ua_msg[4] = FLAG;
-//
-//         write(linkLayer->fd, disc_msg, 5);
-//
-// 		//missing arguments controlfield DISC + ADDRESS1
-// 		if((r=receiveFrame(/*...*/))== 0){
-//
-// 			if(write(linkLayer->fd, ua_msg, 5) == 0)
-//        			printf("Failed to transmit an UA\n");
-// 		}
-// 	}
-// 	else
-// 	{
-//
-// 	unsigned char disc_msg1;
-// 	disc_msg[0] = FLAG;
-//         disc_msg[1] = ADDRESS1;
-//         disc_msg[2] = DISC;
-//         disc_msg[3] = DISC ^ ADDRESS1;
-//         disc_msg[4] = FLAG;
-//
-// 		//missing arguments controlfield DISC + ADDRESS
-// 		if((r=receiveFrame(/*...*/))== 0){  //on success
-//
-// 		write(linkLayer->fd, disc_msg1, 5);
-//
-// 			//missing arguments controlfield UA + ADDRESS1
-// 			if(receiveFrame(/*...*/)==0){ //on success
-// 			return 0;
-// 			}
-// 			else
-// 			{
-// 			return -1;
-// 			}
-// 		}
-// 	}
-// }
 
-/*
-char * stuffing(char frame[], unsigned int frameSize){//TODO test function
-
-  int i;
-  int newFrameSize=frameSize;
-
-  for(i=1; i< (frameSize-1);i++){
-    if(frame[i]== FLAG || frame[i]== ESC)
-    newFrameSize++;
-  }
-
-  char stuffedFrame[newFrameSize];
-  int j=1;
-  stuffedFrame[0]=frame[0];
-  stuffedFrame[newFrameSize-1] = frame[frameSize-1];
-
-  for(i=1; i<(frameSize-1);i++){
-    if(frame[i]==FLAG){
-      stuffedFrame[j]= ESC;
-      j++;
-      stuffedFrame[j]= FLAG_EX;
-    }
-    else if(frame[i]==ESC){
-      stuffedFrame[j]= ESC;
-      j++;
-      stuffedFrame[j]= ESC_EX;
-    }
-    else {
-      stuffedFrame[j]=frame[i];
-    }
-    j++;
-  }
-  return stuffedFrame;
-}
-*/
 
 int destuffing(LinkLayer* lk){ //TODO test function
 
@@ -500,10 +373,10 @@ int destuffing(LinkLayer* lk){ //TODO test function
 
   for(i=0; i< lk->frameSize; i++){
     if(lk->frame[i] == ESC){
-      if(lk->frame[i]==FLAG_EX){
+      if(lk->frame[i+1]==FLAG_EX){
         lk->frame[i+1]= FLAG;
       }
-      else if(lk->frame[i]==ESC_EX){
+      else if(lk->frame[i+1]==ESC_EX){
         lk->frame[i+1]= ESC;
       }
       else{
@@ -511,9 +384,9 @@ int destuffing(LinkLayer* lk){ //TODO test function
         return -1;
       }
       memmove(&lk->frame[i], &lk->frame[i+1], lk->frameSize - (i+1));
+      lk->frameSize--;
       deletedBytes++;
     }
   }
-  lk->frameSize -= deletedBytes;
   return 0;
 }
