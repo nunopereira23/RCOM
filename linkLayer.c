@@ -264,7 +264,7 @@ int llwrite(int fd, char * buffer, int length){
 int llread(int fd, char * buffer){
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
   char response;
-  if((response = receiveframe(&linkLayer, INFO)) != 0){
+    response = receiveframe(&linkLayer, INFO);
     message[2] = response;
     message[3] = response ^ ADDRESS;
     write(fd, message, 5);
@@ -282,7 +282,7 @@ int llread(int fd, char * buffer){
 */
 int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x03 or 0x01
 	int stop = 0;
-  unsigned int oldSeqNum = linkLayer->seqNum;
+  unsigned int oldSeqNum = linkLayer->seqNum, newSeqNum;
 
 	int i = 0;
 	state = START;
@@ -307,38 +307,35 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
 					i = 0;
 				}
 				break;
+        
 			case A_RCV:
 				read(linkLayer->fd, linkLayer->frame + i, 1);
-				if(controlField == INFO){
-          /*Duplicated Frames*/
-          if(oldSeqNum == linkLayer->frame[i] >> 6){
-            i++;
-            read(linkLayer->fd, linkLayer->frame + i, 1);
-              if((linkLayer->frame[i-2] ^ linkLayer->frame[i-1]) == linkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
-                return RR(oldSeqNum);
-              }
-          }
 
-					if(linkLayer->frame[i] == SEQ_NUM0 || linkLayer->frame[i] == SEQ_NUM1){
-            linkLayer->seqNum = linkLayer->frame[i] >> 6;
-            i++;
-            read(linkLayer->fd, linkLayer->frame + i, 1);
-            if((linkLayer->frame[i-2] ^ linkLayer->frame[i-1]) == linkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
-              if(readData(linkLayer) == 0)
-                return 0;
-              else if(linkLayer->seqNum == 0)
-                return REJ(0); //Requesting  REJ_0
-              else if(linkLayer->seqNum == 1)
-                return REJ(1); //Requesting REJ1
-              }
-		      }
-        }
-
-				else if(linkLayer->frame[i] == controlField){
+        if(linkLayer->frame[i] == controlField){
 					state = C_RCV;
 					i++;
 				}
 				break;
+
+				if(controlField == INFO){
+            newSeqNum = linkLayer->frame[i] >> 6;
+            i++;
+            read(linkLayer->fd, linkLayer->frame + i, 1);
+            if((linkLayer->frame[i-2] ^ linkLayer->frame[i-1]) == linkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
+              if(linkLayer->seqNum == newSeqNum)
+                  return RR((newSeqNum+1)%2)
+
+              if(readData(linkLayer) == 0){
+                linkLayer->seqNum = newSeqNum;
+                    return RR(newSeqNum);
+                }
+              else
+                return REJ(linkLayer->seqNum); //Requesting  REJ_0
+            }
+            i--;
+            break;
+          }
+
 			case C_RCV:
 				read(linkLayer->fd, linkLayer->frame + i, 1);
 				if(linkLayer->frame[i] == (ADDRESS ^ linkLayer->frame[i-1])){
@@ -360,11 +357,11 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
   return 0;
 }
 
-/**
+/**== linkLayer->seqNum
 * Reads the data in a Information frame
 * @param lk - LinkLayer's info struct
 * @return 0 if there's no error, 1 for destuffing error and 2 for Bcc2 check error
-*/
+*/Se se tratar dum duplicado, deve fazer-se confirmação com RR
 int readData(LinkLayer* lk){
   char stop = 0;
   unsigned int i = 0;
