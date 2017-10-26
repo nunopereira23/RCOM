@@ -14,19 +14,20 @@
 //
 // typedef struct{
 // } Frame;
-#define Frame_Size 20
+#define FRAME_SIZE 1024
+#define FRAME_I_DATA 1016
 
 
 typedef struct {
 char fd; /* /dev/ttySx File descriptor/*/
-int baudRate; /*Velocidade de transmissão*/
 unsigned int seqNum;   /*Número de sequência da trama: 0, 1*/
-unsigned int timeout; /*Valor do temporizador: 1 s*/
-unsigned int numTransmissions; /*Número de tentativas em caso de falha*/
 unsigned int frameSize;
 unsigned int readBytes;
-char frame[Frame_Size]; /*Trama*/
+char frame[FRAME_SIZE]; /*Trama*/
 } LinkLayer;
+
+LinkLayer linkLayer;
+
 
 #define BAUDRATE B38400
 //#define MODEMDEVICE "/dev/ttyS1"
@@ -49,7 +50,7 @@ int destuffing(LinkLayer* lk);
 int stuffing(LinkLayer* lk);
 
 
-
+int llread(int fd, char * buffer);
 int llwrite(int fd, char * buffer, int length);
 int llopen(int port, char transmissor);
 void alarmHandler(int sigNum);
@@ -64,20 +65,21 @@ void alarmHandler(int sigNum);
 
 //SerialPort Control messages - Supervision
 #define FLAG 0x7E
-#define ADDRESS 0x03 //A
-#define ADDRESS1 0x01 //A
+#define ADDRESS 0x03
+#define ADDRESS1 0x01
 //Control Field - C
 #define SET 0x03
 #define DISC  0x0B
 #define UA  0x07
 
-  //Receive fields MSbit R = N(r)
-  #define RR  0x05
-    #define RR_0 0x05
-    #define RR_1 0x85
-  #define REJ 0x01
-    #define REJ_0 0x01
-    #define REJ_1 0x81
+/*Receive fields MSbit R = N(r)*/
+  // RR_0 0x05
+  // RR_1 0x85
+  #define RR(Num) 0x05 | Num << 7
+
+  //REJ_0 0x01
+  //REJ_1 0x81
+  #define REJ(Num) 0x1 | Num << 7
 //BCC1  xor(A, C) // Address ^ Control
 
 //stuffing

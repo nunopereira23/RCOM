@@ -30,7 +30,7 @@ int llopen(int port, char flag){
     perror("llopen()::Couldn't open serialPort fd\n");
     return -1;
   }
-  //TODO test if port is between range
+
   char path[] = "/dev/ttyS", portString[2];
 
   portString[0] =  port + '0';
@@ -76,7 +76,7 @@ int llopen(int port, char flag){
 //     int i;
 //     for(i = 0; i < 12; i++)
 //     printf("%02x |", lk.frame[i]);
-// 
+//
 // printf("\n");
 // return 0;
 
@@ -246,14 +246,43 @@ int llopen(int port, char flag){
   return serialPort;
 }
 
+int llwrite(int fd, char * buffer, int length){
+  unsigned int nIter = length / FRAME_I_DATA;
+  state = START;
+
+  unsigned int = 0;
+  while (i < nIter) {
+    switch (linkLayer.seqNum) {
+      case 0:
+      write(fd, buffer[i*FRAME_I_DATA], FRAME_SIZE);
+    }
+  }
+
+  return 0;
+}
+
+int llread(int fd, char * buffer){
+  unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
+  char response;
+  if((response = receiveframe(&linkLayer, INFO)) != 0){
+    message[2] = response;
+    message[3] = response ^ ADDRESS;
+    write(fd, message, 5);
+    return 0;
+  }
+  return linkLayer.readBytes;
+}
+
+
 /**
 * Generic frame receiver, it can handle Info Frames as well as Supervision Frame_Size
 * @param frame
 * @param controlField expected  frame's contcontrolFieldrol field
-* @return boolean acessing whether the frame was of the same kind as controlField
+* @return 0 if received without errors and  RR(Num) or REJ(Num) if there's a proble with data within the frame
 */
 int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x03 or 0x01
 	int stop = 0;
+  unsigned int oldSeqNum = linkLayer->seqNum;
 
 	int i = 0;
 	state = START;
@@ -281,6 +310,15 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
 			case A_RCV:
 				read(linkLayer->fd, linkLayer->frame + i, 1);
 				if(controlField == INFO){
+          /*Duplicated Frames*/
+          if(oldSeqNum == linkLayer->frame[i] >> 6){
+            i++;
+            read(linkLayer->fd, linkLayer->frame + i, 1);
+              if((linkLayer->frame[i-2] ^ linkLayer->frame[i-1]) == linkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
+                return RR(oldSeqNum);
+              }
+          }
+
 					if(linkLayer->frame[i] == SEQ_NUM0 || linkLayer->frame[i] == SEQ_NUM1){
             linkLayer->seqNum = linkLayer->frame[i] >> 6;
             i++;
@@ -289,10 +327,14 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
               if(readData(linkLayer) != 0){
                 i--;
               }
-              return 0;
-            }
+              else if(linkLayer->seqNum == 0)
+                return REJ(0); //Requesting  REJ_0
+              else if(linkLayer->seqNum == 1)
+                return REJ(1); //Requesting REJ1
+              }
 		      }
         }
+
 				else if(linkLayer->frame[i] == controlField){
 					state = C_RCV;
 					i++;
@@ -319,6 +361,11 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
   return 0;
 }
 
+/**
+* Reads the data in a Information frame
+* @param lk - LinkLayer's info struct
+* @return 0 if there's no error, 1 for destuffing error and 2 for Bcc2 check error
+*/
 int readData(LinkLayer* lk){
   char stop = 0;
   unsigned int i = 0;
@@ -334,9 +381,9 @@ int readData(LinkLayer* lk){
       lk->readBytes --; //Subtracted non data - wrong increment
     }
   }
-  
+
     lk->frameSize = lk->readBytes; //FrameSize -> data + bbc2
-    
+
   if(destuffing(lk) != 0){
     printf("Destuffing Error\n");
     return 1;
@@ -344,7 +391,7 @@ int readData(LinkLayer* lk){
 
   if(bcc2Check(lk)){
     printf("Failed BCC2 check\n");
-    return 1;
+    return 2;
   }
 
   return 0;
@@ -357,15 +404,13 @@ int bcc2Check(LinkLayer* lk){
   for (i = 1; i < lk->frameSize-1; i++) {
     xorResult ^= lk->frame[i];
   }
-                      /*BCC2*/
+                  /*BCC2*/
   if(xorResult != lk->frame[lk->frameSize-1])
     return 1;
 
   lk->frameSize --;//BCC2 Ignored (Deleted)
   return 0; //BCC2 field is correct
 }
-
-
 
 int destuffing(LinkLayer* lk){ //TODO test function
 
