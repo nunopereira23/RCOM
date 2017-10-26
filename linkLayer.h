@@ -42,7 +42,7 @@ LinkLayer linkLayer;//Global variable
 #define TIMEOUT 3
 #define N_TRIES 3
 
-int receiveframe(LinkLayer* linkLayer);
+int receiveFrame(LinkLayer* linkLayer);
 int readData(LinkLayer* lk);
 int bcc2Calc(unsigned char* buffer, int length);
 int bcc2Check(LinkLayer* lk);
@@ -56,6 +56,7 @@ int llclose(int fd);
 void alarmHandler(int sigNum);
 
 
+#define C_IDX 2
 
 //Returns
 #define callDisk -1

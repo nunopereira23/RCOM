@@ -11,7 +11,7 @@ unsigned int retryCount, state;
 void alarmHandler(int sigNum){
   retryCount++;
   printf("Alarm triggered\n");
-  state = SET_SEND;
+  state = START;
 }
 
 
@@ -22,9 +22,7 @@ void alarmHandler(int sigNum){
 * @ return return the serial port's fd or a negative number if an error occurs
 */
 int llopen(int port, char flag){
-  int serialPort;
   unsigned char message[5];
-  unsigned char byte;
 
   if(flag != TRANSMISSOR && flag != RECEIVER){
     perror("llopen()::Couldn't open serialPort fd\n");
@@ -40,7 +38,7 @@ int llopen(int port, char flag){
 
 
   //printf("path %s\n", path);
-  if((serialPort = open(path, O_RDWR | O_NOCTTY )) < 0){
+  if((linkLayer.fd = open(path, O_RDWR | O_NOCTTY )) < 0){
     printf("llopen()::Couldn't open serialPort %d\n", port);
     return -1;
   }
@@ -48,7 +46,7 @@ int llopen(int port, char flag){
 
   struct termios oldtio, newtio;
 
-  if ( tcgetattr(serialPort,&oldtio) == -1) { /* save current port settings */
+  if ( tcgetattr(linkLayer.fd, &oldtio) == -1) { /* save current port settings */
     perror("tcgetattr");
     exit(-1);
   }
@@ -64,100 +62,45 @@ int llopen(int port, char flag){
   newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
   newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
-  tcflush(serialPort, TCIOFLUSH);
+  tcflush(linkLayer.fd, TCIOFLUSH);
 
-  if ( tcsetattr(serialPort,TCSANOW,&newtio) == -1) {
+  if ( tcsetattr(linkLayer.fd, TCSANOW, &newtio) == -1) {
     perror("tcsetattr");
     exit(-1);
   }
-//     LinkLayer lk; //TO TEST receiveframe()
-//     lk.fd = serialPort;
-//     receiveframe(&lk, INFO);
-//     int i;
-//     for(i = 0; i < 12; i++)
-//     printf("%02x |", lk.frame[i]);
-//
-// printf("\n");
-// return 0;
 
   if(flag == TRANSMISSOR){
     int connected = 0;
     retryCount = 0;
 
-    state = SET_SEND;
+    state = START;
 
     while(!connected &&  retryCount != N_TRIES){
-      if(state != SET_SEND && state != END){
-        read(serialPort, &byte, 1);
-        printf("UA %x\n", byte);
-      }
       switch (state) {
-        case  SET_SEND:
+        case  START:
           message[0] = FLAG;
           message[1] = ADDRESS;
           message[2] = SET;
           message[3] = SET ^ ADDRESS;
           message[4] = FLAG;
 
-          write(serialPort, message, 5); //Send set message
+          write(linkLayer.fd, message, 5); //Send set message
            if(alarm(TIMEOUT) != 0){
              printf("Alarm already scheduled in seconds\n");
            }
-          //WAIT FOR UA
-          state = START;
-          //printf("State\n");
-          break;
-        case  START://UA State Machine
-            //printf("START\n");
-            if(byte == FLAG)
-              state = FLAG_RCV;
-            break;
 
-          case FLAG_RCV:
-            if(byte == ADDRESS){
-              state = A_RCV;
-            }
-            else if(byte == FLAG)
-              state = FLAG_RCV;
-            else
-              state = START;
+          state = RECEIVE;
           break;
-
-          case A_RCV:
-          //printreceiveframef("Reached Address Received\n");
-            if(byte == UA)
-              state = UA_RCV;
-            else if(byte == FLAG)
-              state = FLAG_RCV;
-            else
-              state = START;
-          break;
-
-          case UA_RCV:
-          //printf("Reached UA (C) Received\n");
-            if(byte == (ADDRESS ^ UA))
-              state = BCC_OK;
-            else if(byte == FLAG)
-              state = FLAG_RCV;
-            else
-              state = START;
-          break;
-
-          case BCC_OK:
-            if(byte == FLAG){
-              state = END;
-              //printf("Reached BCC_Ok, state %d\n", state);
-            }
-            else
-              state = START;
-          break;
-
-          case END:
-            printf("Right Before Disabling Alarm\n");
-            alarm(0); //Disables the alarm
-            connected = TRUE;
-            printf("Received an UA\n");
-          break;
+        case  RECEIVE://UA State Machine
+          receiveFrame(&linkLayer);
+          if(linkLayer.frame[C_IDX] == UA)
+            state = END;
+        case END:
+          printf("Right Before Disabling Alarm\n");
+          alarm(0); //Disables the alarm
+          connected = TRUE;
+          printf("Received an UA\n");
+        break;
         }
       }
     if(retryCount == N_TRIES){
@@ -171,49 +114,11 @@ int llopen(int port, char flag){
       unsigned int conEstab = 0;
       state = START;
       while(!conEstab){
-        // printf("Receiver State %d\n", state); DEBUG
-        if(state != END){
-          read(serialPort, &byte, 1);
-          printf("%x\n", byte);
-        }
         switch (state) { //Check if SET Message is received
           case START:
-            if(byte == FLAG)
-              state = FLAG_RCV;
-          break;
-
-          case FLAG_RCV:
-            if(byte == ADDRESS)
-              state = A_RCV;
-            else if(byte == FLAG)
-              state = FLAG_RCV;
-            else
-              state = START;
-          break;
-
-          case A_RCV:
-            if(byte == SET)
-              state = SET_RCV;
-            else if(byte == FLAG)
-              state = FLAG_RCV;
-            else
-              state = START;
-          break;
-
-          case SET_RCV:
-            if(byte == (ADDRESS ^ SET))
-              state = BCC_OK;
-            else if(byte == FLAG)
-              state = FLAG_RCV;
-            else
-              state = START;
-          break;
-
-          case BCC_OK:
-            if(byte == FLAG)
+            receiveFrame(&linkLayer);
+            if(linkLayer.frame[C_IDX] == SET)
               state = END;
-            else
-              state = START;
           break;
 
           case END:
@@ -229,11 +134,11 @@ int llopen(int port, char flag){
       message[2] = UA;
       message[3] = UA ^ ADDRESS;
       message[4] = FLAG;
-      if(write(serialPort, message, 5) == 0)
+      if(write(linkLayer.fd, message, 5) == 0)
         printf("Failed to transmit an UA\n");
   }
 	printf("Connection established\n");
-  return serialPort;
+  return linkLayer.fd;
 }
 
 int llwrite(int fd, unsigned char * buffer, unsigned int length){
@@ -262,11 +167,11 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length){
         alarm(TIMEOUT);
         state = RECEIVE;
       case RECEIVE:
-        if(receiveframe(&linkLayer))
+        if(receiveFrame(&linkLayer))
           printf("llwrite: expected control frame but received Info instead\n");
-        if(linkLayer.frame[2] == REJ(0) || linkLayer.frame[2] == REJ(1))
+        if(linkLayer.frame[C_IDX] == REJ(0) || linkLayer.frame[C_IDX] == REJ(1))
           state = START;
-        else if(linkLayer.frame[2] == DISC)
+        else if(linkLayer.frame[C_IDX] == DISC)
           return callDisk;
         else
           state = END;
@@ -284,7 +189,7 @@ int llread(int fd, char * buffer){
   buffer = linkLayer.frame;
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
 
-    char response = receiveframe(&linkLayer);
+    char response = receiveFrame(&linkLayer);
     message[2] = response;
     message[3] = response ^ ADDRESS;
     write(fd, message, 5);
@@ -307,7 +212,7 @@ int possibleControlField(char controlField){
 * @param controlField expected  frame's contcontrolFieldrol field
 * @return 0 if received without errors and  RR(Num) or REJ(Num) if there's a proble with data within the frame
 */
-int receiveframe(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
+int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 	int stop = 0;
   unsigned int newSeqNum;
 
@@ -503,8 +408,8 @@ int llclose(int fd){
     while(retryCount < N_TRIES){
       write(fd, discMsg, 5);
       alarm(TIMEOUT);
-      receiveframe(&linkLayer);
-      if(linkLayer.frame[2] == DISC){
+      receiveFrame(&linkLayer);
+      if(linkLayer.frame[C_IDX] == DISC){
         discMsg[2] = UA;
         discMsg[3] = UA ^ ADDRESS;
         write(fd, discMsg, 5);
@@ -518,8 +423,8 @@ int llclose(int fd){
     while(retryCount < N_TRIES){
       write(fd, discMsg, 5);
       alarm(TIMEOUT);
-      receiveframe(&linkLayer);
-      if(linkLayer.frame[2] == UA){
+      receiveFrame(&linkLayer);
+      if(linkLayer.frame[C_IDX] == UA){
         alarm(0);
         return 0;
       }
