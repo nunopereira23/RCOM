@@ -324,9 +324,8 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
             i++;
             read(linkLayer->fd, linkLayer->frame + i, 1);
             if((linkLayer->frame[i-2] ^ linkLayer->frame[i-1]) == linkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
-              if(readData(linkLayer) != 0){
-                i--;
-              }
+              if(readData(linkLayer) == 0)
+                return 0;
               else if(linkLayer->seqNum == 0)
                 return REJ(0); //Requesting  REJ_0
               else if(linkLayer->seqNum == 1)

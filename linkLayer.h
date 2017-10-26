@@ -20,7 +20,7 @@
 
 typedef struct {
 char fd; /* /dev/ttySx File descriptor/*/
-unsigned int seqNum;   /*Número de sequência da trama: 0, 1*/
+unsigned int seqNum;
 unsigned int frameSize;
 unsigned int readBytes;
 char frame[FRAME_SIZE]; /*Trama*/
@@ -49,10 +49,10 @@ int bcc2Check(LinkLayer* lk);
 int destuffing(LinkLayer* lk);
 int stuffing(LinkLayer* lk);
 
-
+int llopen(int port, char transmissor);
 int llread(int fd, char * buffer);
 int llwrite(int fd, char * buffer, int length);
-int llopen(int port, char transmissor);
+int llclose();
 void alarmHandler(int sigNum);
 
 
