@@ -236,30 +236,41 @@ int llopen(int port, char flag){
   return serialPort;
 }
 
-int llwrite(int fd, unsigned char * buffer, int length){
+int llwrite(int fd, unsigned char * buffer, unsigned int length){
   retryCount = 0;
-
-  unsigned char bcc2 = calcBcc2(buffer, length);
-  linkLaye.frame[0] = FLAG;
+  unsigned int lenghtStuffng = length +1;
+  unsigned char bcc2 = bcc2Calc(buffer, length);
+  linkLayer.frame[0] = FLAG;
   linkLayer.frame[1] = ADDRESS;
-  linkLayer.frame[2] = 0;
-  linkLayer.frame[3] = 0;
+  linkLayer.frame[2] = linkLayer.seqNum;
+  linkLayer.frame[3] = linkLayer.seqNum ^ ADDRESS;
   memmove(linkLayer.frame+4, buffer, length);
   linkLayer.frame[3+length] = bcc2;
-  stuffing(linkLayer.frame+ 4, &(length + 1));
+  stuffing(linkLayer.frame+ 4, &(lenghtStuffng));
   linkLayer.frameSize = length + 6;
   linkLayer.frame[linkLayer.frameSize-1] = FLAG;
+
+  char frameCpy[linkLayer.frameSize];
+  memmove(frameCpy, linkLayer.frame, linkLayer.frameSize);
 
   unsigned char sent = 0, bytesWritten = 0;
   while(sent && retryCount < N_TRIES){
     switch (state) {
       case START:
+        memmove(linkLayer.frame, frameCpy, linkLayer.frameSize);
         bytesWritten = write(fd, linkLayer.frame, linkLayer.frameSize);
         alarm(TIMEOUT);
         state = RECEIVE;
       case RECEIVE:
-        receiveframe(linkLayer);
-        if()
+        if(receiveframe(&linkLayer))
+          printf("llwrite: expected control frame but received Info instead\n");
+        if(linkLayer.frame[2] == REJ(0) || linkLayer.frame[2] == REJ(1))
+          state = START;
+        else if(linkLayer.frame[2] == DISC)
+          return callDisk;
+        else
+          state = END;
+      break;
       case END:
         alarm(0);
         sent = 1;
@@ -273,7 +284,7 @@ int llread(int fd, char * buffer){
   buffer = linkLayer.frame;
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
 
-    char response = receiveframe(&linkLayer, INFO);
+    char response = receiveframe(&linkLayer);
     message[2] = response;
     message[3] = response ^ ADDRESS;
     write(fd, message, 5);
@@ -281,6 +292,14 @@ int llread(int fd, char * buffer){
   return linkLayer.readBytes;
 }
 
+int possibleControlField(char controlField){
+    if(controlField == SET || controlField ==  UA || controlField ==  DISC ||
+    controlField ==  RR(0) || controlField ==  RR(1) ||
+    controlField ==  REJ(0) ||
+    controlField ==  REJ(1))
+      return 1;
+    return 0;
+}
 
 /**
 * Generic frame receiver, it can handle Info Frames as well as Supervision Frame_Size
@@ -288,7 +307,7 @@ int llread(int fd, char * buffer){
 * @param controlField expected  frame's contcontrolFieldrol field
 * @return 0 if received without errors and  RR(Num) or REJ(Num) if there's a proble with data within the frame
 */
-int receiveframe(LinkLayer* lkLayer, unsigned char controlField){ //ADDRESS 0x03 or 0x01
+int receiveframe(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 	int stop = 0;
   unsigned int newSeqNum;
 
@@ -319,13 +338,13 @@ int receiveframe(LinkLayer* lkLayer, unsigned char controlField){ //ADDRESS 0x03
 			case A_RCV:
 				read(lkLayer->fd, lkLayer->frame + i, 1);
 
-        if(lkLayer->frame[i] == controlField){
+        if(possibleControlField(lkLayer->frame[i])){
 					state = C_RCV;
 					i++;
 				}
 				break;
 
-				if(controlField == INFO){
+				if(lkLayer->frame[i] == SEQ_NUM0 || lkLayer->frame[i] == SEQ_NUM1){
             lkLayer->readBytes = 0;
             newSeqNum = lkLayer->frame[i] >> 6;
             i++;
@@ -405,6 +424,17 @@ int readData(LinkLayer* lk){
   return 0;
 }
 
+int bcc2Calc(unsigned char* buffer, int length){
+  int i;
+  char xorResult = buffer[0]; //D0
+
+  for (i = 1; i < length; i++) {
+    xorResult ^= buffer[i];
+  }
+
+  return xorResult;
+}
+
 int bcc2Check(LinkLayer* lk){
   int i;
   char xorResult = lk->frame[0]; //D0
@@ -425,16 +455,16 @@ int stuffing(char* buff, unsigned int* size){
 
   unsigned int i;
 
-  for(i=0; i< size; i++){
+  for(i=0; i< *size; i++){
     if(buff[i] == FLAG){
-      memmove(&buff[i+2], &buff[i+1], size - (i+1));
+      memmove(&buff[i+2], &buff[i+1], (*size) - (i+1));
       buff[i] = ESC;
       buff[i+1] = FLAG_EX;
       size++;
     }
 
     if(buff[i] == ESC){
-      memmove(&buff[i+2], &buff[i+1], size - (i+1));
+      memmove(&buff[i+2], &buff[i+1], (*size) - (i+1));
       buff[i+1] = ESC_EX;
       size++;
     }
@@ -464,4 +494,36 @@ int destuffing(LinkLayer* lk){
     }
   }
   return 0;
+}
+
+int llclose(int fd){
+  unsigned char discMsg[] = {FLAG, ADDRESS, DISC, DISC ^ ADDRESS, FLAG};
+  retryCount = 0;
+  if(linkLayer.prog == TRANSMISSOR){
+    while(retryCount < N_TRIES){
+      write(fd, discMsg, 5);
+      alarm(TIMEOUT);
+      receiveframe(&linkLayer);
+      if(linkLayer.frame[2] == DISC){
+        discMsg[2] = UA;
+        discMsg[3] = UA ^ ADDRESS;
+        write(fd, discMsg, 5);
+        alarm(0);
+        return 0;
+      }
+    }
+    return -1;
+  }
+  else{
+    while(retryCount < N_TRIES){
+      write(fd, discMsg, 5);
+      alarm(TIMEOUT);
+      receiveframe(&linkLayer);
+      if(linkLayer.frame[2] == UA){
+        alarm(0);
+        return 0;
+      }
+    }
+  return -1;
+  }
 }

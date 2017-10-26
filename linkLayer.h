@@ -24,6 +24,7 @@ unsigned int seqNum;
 unsigned int frameSize;
 unsigned int readBytes;
 char frame[FRAME_SIZE]; /*Trama*/
+char prog;
 } LinkLayer;
 
 LinkLayer linkLayer;//Global variable
@@ -41,20 +42,23 @@ LinkLayer linkLayer;//Global variable
 #define TIMEOUT 3
 #define N_TRIES 3
 
-int receiveframe(LinkLayer* linkLayer, unsigned char controlField);
+int receiveframe(LinkLayer* linkLayer);
 int readData(LinkLayer* lk);
+int bcc2Calc(unsigned char* buffer, int length);
 int bcc2Check(LinkLayer* lk);
 int destuffing(LinkLayer* lk);
 int stuffing(char* buff, unsigned int* size);
 
 int llopen(int port, char transmissor);
 int llread(int fd, char * buffer);
-int llwrite(int fd, char * buffer, int length);
-int llclose();
+int llwrite(int fd, unsigned char * buffer, unsigned int length);
+int llclose(int fd);
 void alarmHandler(int sigNum);
 
 
 
+//Returns
+#define callDisk -1
 
 //Info Frame
 #define INFO 30
@@ -73,15 +77,13 @@ void alarmHandler(int sigNum);
 /*Receive fields MSbit R = N(r)*/
   // RR_0 0x05
   // RR_1 0x85
-  #define RR(Num) 0x05 | Num << 7
+  #define RR(Num) (0x05 | Num << 7)
 
   //REJ_0 0x01
   //REJ_1 0x81
-  #define REJ(Num) 0x1 | Num << 7
-//BCC1  xor(A, C) // Address ^ Control
+  #define REJ(Num) (0x1 | Num << 7)
 
-//stuffing
-
+//Stuffing
 #define ESC 0x7d
 #define ESC_EX 0x5d
 #define FLAG_EX 0x5e

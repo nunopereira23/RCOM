@@ -13,6 +13,7 @@
 #define C_RCV 7
 #define BCC1_OK 8
 #define BCC2_OK 9
+#define RECEIVE 10
 
 
 #endif
