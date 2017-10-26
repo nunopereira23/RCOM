@@ -15,7 +15,7 @@
 // typedef struct{
 // } Frame;
 #define FRAME_SIZE 1024
-#define FRAME_I_DATA 1016
+#define FRAME_I_DATA 1018
 
 
 typedef struct {
@@ -26,7 +26,7 @@ unsigned int readBytes;
 char frame[FRAME_SIZE]; /*Trama*/
 } LinkLayer;
 
-LinkLayer linkLayer;
+LinkLayer linkLayer;//Global variable
 
 
 #define BAUDRATE B38400
@@ -38,16 +38,14 @@ LinkLayer linkLayer;
 #define TRANSMISSOR 1
 #define RECEIVER 0
 
+#define TIMEOUT 3
 #define N_TRIES 3
 
-// int serialP; //SerialPort File descriptor
-
-//int transmit(int fd, char message[], unsigned int size);
 int receiveframe(LinkLayer* linkLayer, unsigned char controlField);
 int readData(LinkLayer* lk);
 int bcc2Check(LinkLayer* lk);
 int destuffing(LinkLayer* lk);
-int stuffing(LinkLayer* lk);
+int stuffing(char* buff, unsigned int* size);
 
 int llopen(int port, char transmissor);
 int llread(int fd, char * buffer);

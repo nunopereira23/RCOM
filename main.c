@@ -3,7 +3,7 @@
 
 int main(int argc, char** argv)
 {
-    
+
   if ( (argc < 3) ||
         (strcmp("0", argv[1])!= 0 &&
         strcmp("1", argv[1])!= 0) ||
@@ -13,7 +13,14 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  LinkLayer linkLayer;
+  struct sigaction sigact;
+  sigact.sa_handler = alarmHandler;
+  sigact.sa_flags = 0;
+
+  if(sigaction(SIGALRM, &sigact, NULL) != 0){
+    perror("Failed to install the signal handler\n");
+    return -1;
+  }
 
 	if(strcmp(argv[2], "r") == 0){
 		if((linkLayer.fd = llopen(argv[1][0] - '0', RECEIVER)) < 0){

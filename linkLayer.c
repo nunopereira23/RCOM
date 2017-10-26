@@ -84,16 +84,6 @@ int llopen(int port, char flag){
     int connected = 0;
     retryCount = 0;
 
-    struct sigaction sigact;
-    sigact.sa_handler = alarmHandler;
-    sigact.sa_flags = 0;
-
-    if(sigaction(SIGALRM, &sigact, NULL) != 0){
-      perror("llopen()::receiver failed to install the signal handler\n");
-      return -1;
-    }
-    // signal(SIGALRM, alarmHandler);
-
     state = SET_SEND;
 
     while(!connected &&  retryCount != N_TRIES){
@@ -110,7 +100,7 @@ int llopen(int port, char flag){
           message[4] = FLAG;
 
           write(serialPort, message, 5); //Send set message
-           if(alarm(3) != 0){
+           if(alarm(TIMEOUT) != 0){
              printf("Alarm already scheduled in seconds\n");
            }
           //WAIT FOR UA
@@ -246,43 +236,61 @@ int llopen(int port, char flag){
   return serialPort;
 }
 
-int llwrite(int fd, char * buffer, int length){
-  unsigned int nIter = length / FRAME_I_DATA;
-  state = START;
+int llwrite(int fd, unsigned char * buffer, int length){
+  retryCount = 0;
 
-  unsigned int = 0;
-  while (i < nIter) {
-    switch (linkLayer.seqNum) {
-      case 0:
-      write(fd, buffer[i*FRAME_I_DATA], FRAME_SIZE);
+  unsigned char bcc2 = calcBcc2(buffer, length);
+  linkLaye.frame[0] = FLAG;
+  linkLayer.frame[1] = ADDRESS;
+  linkLayer.frame[2] = 0;
+  linkLayer.frame[3] = 0;
+  memmove(linkLayer.frame+4, buffer, length);
+  linkLayer.frame[3+length] = bcc2;
+  stuffing(linkLayer.frame+ 4, &(length + 1));
+  linkLayer.frameSize = length + 6;
+  linkLayer.frame[linkLayer.frameSize-1] = FLAG;
+
+  unsigned char sent = 0, bytesWritten = 0;
+  while(sent && retryCount < N_TRIES){
+    switch (state) {
+      case START:
+        bytesWritten = write(fd, linkLayer.frame, linkLayer.frameSize);
+        alarm(TIMEOUT);
+        state = RECEIVE;
+      case RECEIVE:
+        receiveframe(linkLayer);
+        if()
+      case END:
+        alarm(0);
+        sent = 1;
+      break;
     }
   }
-
-  return 0;
+  return bytesWritten;
 }
 
 int llread(int fd, char * buffer){
+  buffer = linkLayer.frame;
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
-  char response;
-    response = receiveframe(&linkLayer, INFO);
+
+    char response = receiveframe(&linkLayer, INFO);
     message[2] = response;
     message[3] = response ^ ADDRESS;
     write(fd, message, 5);
-    return 0;
-  }
+
   return linkLayer.readBytes;
 }
 
 
 /**
 * Generic frame receiver, it can handle Info Frames as well as Supervision Frame_Size
-* @param frame
+* @param framelkLayer
 * @param controlField expected  frame's contcontrolFieldrol field
 * @return 0 if received without errors and  RR(Num) or REJ(Num) if there's a proble with data within the frame
 */
-int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x03 or 0x01
+int receiveframe(LinkLayer* lkLayer, unsigned char controlField){ //ADDRESS 0x03 or 0x01
 	int stop = 0;
-  unsigned int oldSeqNum = linkLayer->seqNum, newSeqNum;
+  unsigned int newSeqNum;
 
 	int i = 0;
 	state = START;
@@ -290,62 +298,64 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
 	while(!stop){
 		switch (state) {
 			case START:
-				read(linkLayer->fd, linkLayer->frame + i, 1);
-				if(linkLayer->frame[i] == FLAG){
+				read(lkLayer->fd, lkLayer->frame + i, 1);
+				if(lkLayer->frame[i] == FLAG){
 					state = FLAG_RCV;
 					i++;
 				}
 				break;
 			case FLAG_RCV:
-				read(linkLayer->fd, linkLayer->frame + i, 1);
-				if(linkLayer->frame[i] == ADDRESS){
+				read(lkLayer->fd, lkLayer->frame + i, 1);
+				if(lkLayer->frame[i] == ADDRESS){
 					state = A_RCV;
 					i++;
 				}
-				else if(linkLayer->frame[i] != FLAG){//Other unexpected info
+				else if(lkLayer->frame[i] != FLAG){//Other unexpected info
 					state = START;
 					i = 0;
 				}
 				break;
-        
-			case A_RCV:
-				read(linkLayer->fd, linkLayer->frame + i, 1);
 
-        if(linkLayer->frame[i] == controlField){
+			case A_RCV:
+				read(lkLayer->fd, lkLayer->frame + i, 1);
+
+        if(lkLayer->frame[i] == controlField){
 					state = C_RCV;
 					i++;
 				}
 				break;
 
 				if(controlField == INFO){
-            newSeqNum = linkLayer->frame[i] >> 6;
+            lkLayer->readBytes = 0;
+            newSeqNum = lkLayer->frame[i] >> 6;
             i++;
-            read(linkLayer->fd, linkLayer->frame + i, 1);
-            if((linkLayer->frame[i-2] ^ linkLayer->frame[i-1]) == linkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
-              if(linkLayer->seqNum == newSeqNum)
-                  return RR((newSeqNum+1)%2)
+            read(lkLayer->fd, lkLayer->frame + i, 1);
+            if((lkLayer->frame[i-2] ^ lkLayer->frame[i-1]) == lkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
+              if(lkLayer->seqNum == newSeqNum)
+                  return RR((newSeqNum+1)%2);
 
-              if(readData(linkLayer) == 0){
-                linkLayer->seqNum = newSeqNum;
-                    return RR(newSeqNum);
-                }
+
+              if(readData(lkLayer) == 0){
+                lkLayer->seqNum = newSeqNum;
+                return RR(newSeqNum);
+              }
               else
-                return REJ(linkLayer->seqNum); //Requesting  REJ_0
+                return REJ(lkLayer->seqNum); //Requesting  REJ_0
             }
             i--;
             break;
           }
 
 			case C_RCV:
-				read(linkLayer->fd, linkLayer->frame + i, 1);
-				if(linkLayer->frame[i] == (ADDRESS ^ linkLayer->frame[i-1])){
+				read(lkLayer->fd, lkLayer->frame + i, 1);
+				if(lkLayer->frame[i] == (ADDRESS ^ lkLayer->frame[i-1])){
 					state = BCC1_OK;
 					i++;
 				}
 				break;
 			case BCC1_OK:
-				read(linkLayer->fd, linkLayer->frame + i, 1);
-				if(linkLayer->frame[i] == FLAG){
+				read(lkLayer->fd, lkLayer->frame + i, 1);
+				if(lkLayer->frame[i] == FLAG){
 					state = END;
 				}
 				break;
@@ -357,11 +367,11 @@ int receiveframe(LinkLayer* linkLayer, unsigned char controlField){ //ADDRESS 0x
   return 0;
 }
 
-/**== linkLayer->seqNum
+/**
 * Reads the data in a Information frame
 * @param lk - LinkLayer's info struct
 * @return 0 if there's no error, 1 for destuffing error and 2 for Bcc2 check error
-*/Se se tratar dum duplicado, deve fazer-se confirmação com RR
+* Se se tratar dum duplicado, deve fazer-se confirmação com RR*/
 int readData(LinkLayer* lk){
   char stop = 0;
   unsigned int i = 0;
@@ -382,11 +392,13 @@ int readData(LinkLayer* lk){
 
   if(destuffing(lk) != 0){
     printf("Destuffing Error\n");
+    lk->readBytes = 0;
     return 1;
   }
 
   if(bcc2Check(lk)){
     printf("Failed BCC2 check\n");
+    lk->readBytes = 0;
     return 2;
   }
 
@@ -408,7 +420,29 @@ int bcc2Check(LinkLayer* lk){
   return 0; //BCC2 field is correct
 }
 
-int destuffing(LinkLayer* lk){ //TODO test function
+
+int stuffing(char* buff, unsigned int* size){
+
+  unsigned int i;
+
+  for(i=0; i< size; i++){
+    if(buff[i] == FLAG){
+      memmove(&buff[i+2], &buff[i+1], size - (i+1));
+      buff[i] = ESC;
+      buff[i+1] = FLAG_EX;
+      size++;
+    }
+
+    if(buff[i] == ESC){
+      memmove(&buff[i+2], &buff[i+1], size - (i+1));
+      buff[i+1] = ESC_EX;
+      size++;
+    }
+  }
+  return 0;
+}
+
+int destuffing(LinkLayer* lk){
 
   unsigned int i, deletedBytes = 0;
 
