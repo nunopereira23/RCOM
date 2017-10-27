@@ -27,12 +27,15 @@ int main(int argc, char** argv)
     linkLayer.prog = RECEIVER;
 		if((linkLayer.fd = llopen(argv[1][0] - '0', RECEIVER)) < 0){
 				printf("Receiver failed to establish the connection\n");
+        return 1;
 		}
 	}
 	else{
     linkLayer.prog = TRANSMISSOR;
-		if((linkLayer.fd = llopen(argv[1][0] - '0', TRANSMISSOR)) < 0)
-			printf("Transmissor failed to establish the connection\n");
+		if((linkLayer.fd = llopen(argv[1][0] - '0', TRANSMISSOR)) < 0){
+			printf("Transmissor failed to establish the connection fd %d\n", linkLayer.fd);
+      return 1;
+    }
   }
 
   test();
