@@ -154,11 +154,11 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   memmove(linkLayer.frame+4, buffer, length);
   linkLayer.frame[4+length] = bcc2;
 
-  int i;
-  for (i = 0; i < 5+ length; i++) {
-    printf("%x\n", linkLayer.frame[i]);
-  }
-  printf("\n\n\n");
+  // int i;
+  // for (i = 0; i < 5+ length; i++) {
+  //   printf("%x\n", linkLayer.frame[i]);
+  // }
+  // printf("\n\n\n");
 
   stuffing(linkLayer.frame + 4, &(lenghtStuffng));
   linkLayer.frameSize = length + 6;
@@ -179,12 +179,6 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   unsigned int frameISize = linkLayer.frameSize;
   memmove(frameCpy, linkLayer.frame, linkLayer.frameSize);
 
-  // printf("Frame Copy\n");
-  // for (i = 0; i < linkLayer.frameSize; i++) {
-  //   printf("%x\n", frameCpy[i]);
-  // }
-  // printf("\n\n\n");
-
   state=START;
 
   unsigned char sent = 0, bytesWritten = 0;
@@ -200,10 +194,11 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
         state = RECEIVE;
       break;
       case RECEIVE:
-        if(receiveFrame(&linkLayer))
+        if(receiveFrame(&linkLayer)){
           printf("llwrite: expected control frame but received Info instead\n");
-        printf("CONTROL FIELD %x\n", linkLayer.frame[C_IDX]);
-        if(linkLayer.frame[C_IDX] == RR(0) || linkLayer.frame[C_IDX] == RR(1)){
+          printf("CONTROL FIELD %x\n", linkLayer.frame[C_IDX]);
+        }
+        else if(linkLayer.frame[C_IDX] == RR(0) || linkLayer.frame[C_IDX] == RR(1)){
           state = END;
           printf("llwrite RR\n");
         }
@@ -236,7 +231,7 @@ int llread(int fd, unsigned char * buffer){
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
 
     unsigned char response = receiveFrame(&linkLayer);
-    printf("llread ACK %x ", response);
+    printf("llread will send %x ", response);
     message[2] = response;
     message[3] = response ^ ADDRESS;
     write(fd, message, 5);
@@ -307,7 +302,7 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 
 
               if(readData(lkLayer) == 0){
-                lkLayer->seqNum = newSeqNum;
+                lkLayer->seqNum = (lkLayer->seqNum+1)%2;
                 return RR(newSeqNum);
               }
               else

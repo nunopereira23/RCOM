@@ -6,9 +6,21 @@ int test(void){
 
   if(linkLayer.prog == TRANSMISSOR){
       linkLayer.seqNum = 0;
-    unsigned char packect[] = "Ola tudo bem?";
+    unsigned char packect[] = "~Ola tudo bem?";
 
-    printf("llwrite wrote %d\n", llwrite(linkLayer.fd, packect, 14));
+    // printf("Antes Stuffing\n");
+    // printf("Size %d\n", size);
+    // int i;
+    // for (i = 0; i < size; i++) {
+    //   printf("%x\n", packect[i]);
+    // }
+    // printf("\n\n\n");
+    // stuffing(packect, &size);
+    //
+    // printf("Apos Stuffing\n");
+    // printf("Size %d\n", size);
+
+    printf("llwrite wrote %d\n", llwrite(linkLayer.fd, packect, 15));
   }
   else{
     linkLayer.seqNum = 1;
@@ -17,7 +29,7 @@ int test(void){
     for(i = 0; i < linkLayer.frameSize; i++){
       printf("Hex %x\n", linkLayer.frame[i]);
     }
-    printf("Dados %s\n", linkLayer.frame);
+    printf("Dados \"%s\"\n", linkLayer.frame);
   }
   return 0;
 }
