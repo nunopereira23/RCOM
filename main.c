@@ -1,5 +1,6 @@
 /*Serial COM*/
 #include "linkLayer.h"
+#include "appLayer.h"
 
 int main(int argc, char** argv)
 {
@@ -32,11 +33,9 @@ int main(int argc, char** argv)
     linkLayer.prog = TRANSMISSOR;
 		if((linkLayer.fd = llopen(argv[1][0] - '0', TRANSMISSOR)) < 0)
 			printf("Transmissor failed to establish the connection\n");
-
-      unsigned char packect[] = "Ola tudo bem?";
-      linkLayer.seqNum = 0;
-      printf("llwrite wrote %d\n", llwrite(linkLayer.fd, packect, 14));
   }
+
+  test();
 
 	return 0;
 }

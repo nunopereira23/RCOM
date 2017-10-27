@@ -60,7 +60,7 @@ int llopen(int port, char flag){
   /* set input mode (non-canonical, no echo,...) */
   newtio.c_lflag = 0;
 
-  newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
+  newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
   newtio.c_cc[VMIN]     = 1;
 
   tcflush(linkLayer.fd, TCIOFLUSH);
