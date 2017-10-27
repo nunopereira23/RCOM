@@ -19,11 +19,11 @@
 
 
 typedef struct {
-char fd; /* /dev/ttySx File descriptor/*/
+int fd; /* /dev/ttySx File descriptor/*/
 unsigned int seqNum;
 unsigned int frameSize;
 unsigned int readBytes;
-char frame[FRAME_SIZE]; /*Trama*/
+unsigned char frame[FRAME_SIZE]; /*Trama*/
 char prog;
 } LinkLayer;
 
@@ -47,10 +47,10 @@ int readData(LinkLayer* lk);
 int bcc2Calc(unsigned char* buffer, int length);
 int bcc2Check(LinkLayer* lk);
 int destuffing(LinkLayer* lk);
-int stuffing(char* buff, unsigned int* size);
+int stuffing(unsigned char* buff, unsigned int* size);
 
 int llopen(int port, char transmissor);
-int llread(int fd, char * buffer);
+int llread(int fd, unsigned char * buffer);
 int llwrite(int fd, unsigned char * buffer, unsigned int length);
 int llclose(int fd);
 void alarmHandler(int sigNum);
@@ -63,6 +63,8 @@ void alarmHandler(int sigNum);
 
 //Info Frame
 #define INFO 30
+
+#define SEQ_NUM(NUM) (NUM << 6)
 #define SEQ_NUM0 0
 #define SEQ_NUM1 0x40
 

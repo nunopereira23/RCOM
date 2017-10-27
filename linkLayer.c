@@ -1,7 +1,7 @@
 #include "linkLayer.h"
 #include "stateMachines.h"
 
-unsigned int retryCount, state;
+unsigned int retryCount, state, stateRcv;
 
 /**
 * @ llopen() SigAlm handler, it increments nTries
@@ -10,7 +10,8 @@ unsigned int retryCount, state;
 
 void alarmHandler(int sigNum){
   retryCount++;
-  printf("Alarm triggered\n");
+  printf("Alarm triggered, retryCount =  %d\n", retryCount);
+  stateRcv = END;
   state = START;
 }
 
@@ -60,7 +61,7 @@ int llopen(int port, char flag){
   newtio.c_lflag = 0;
 
   newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-  newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
+  newtio.c_cc[VMIN]     = 1;
 
   tcflush(linkLayer.fd, TCIOFLUSH);
 
@@ -88,13 +89,13 @@ int llopen(int port, char flag){
            if(alarm(TIMEOUT) != 0){
              printf("Alarm already scheduled in seconds\n");
            }
-
           state = RECEIVE;
           break;
         case  RECEIVE://UA State Machine
           receiveFrame(&linkLayer);
           if(linkLayer.frame[C_IDX] == UA)
             state = END;
+          break;
         case END:
           printf("Right Before Disabling Alarm\n");
           alarm(0); //Disables the alarm
@@ -141,55 +142,68 @@ int llopen(int port, char flag){
   return linkLayer.fd;
 }
 
-int llwrite(int fd, unsigned char * buffer, unsigned int length){
+int llwrite(int fd, unsigned char* buffer, unsigned int length){
   retryCount = 0;
   unsigned int lenghtStuffng = length +1;
   unsigned char bcc2 = bcc2Calc(buffer, length);
+  printf("Bcc2 %x\n", bcc2);
   linkLayer.frame[0] = FLAG;
   linkLayer.frame[1] = ADDRESS;
-  linkLayer.frame[2] = linkLayer.seqNum;
+  linkLayer.frame[2] = SEQ_NUM(linkLayer.seqNum);
   linkLayer.frame[3] = linkLayer.seqNum ^ ADDRESS;
   memmove(linkLayer.frame+4, buffer, length);
-  linkLayer.frame[3+length] = bcc2;
-  stuffing(linkLayer.frame+ 4, &(lenghtStuffng));
+  linkLayer.frame[4+length] = bcc2;
+  stuffing(linkLayer.frame + 4, &(lenghtStuffng));
   linkLayer.frameSize = length + 6;
   linkLayer.frame[linkLayer.frameSize-1] = FLAG;
 
-  char frameCpy[linkLayer.frameSize];
+  /*int i;
+  for (i =0; i < linkLayer.frameSize; i++) {
+    printf("Frame idx %i - %x\n", i, linkLayer.frame[i]);
+  }*/
+
+  unsigned char frameCpy[linkLayer.frameSize];
   memmove(frameCpy, linkLayer.frame, linkLayer.frameSize);
 
+  state=START;
+
   unsigned char sent = 0, bytesWritten = 0;
-  while(sent && retryCount < N_TRIES){
+  while(!sent && retryCount < N_TRIES){
     switch (state) {
+      printf("llWrite state %d\n", state);
       case START:
         memmove(linkLayer.frame, frameCpy, linkLayer.frameSize);
         bytesWritten = write(fd, linkLayer.frame, linkLayer.frameSize);
+        printf("BytesWritten %d\n", bytesWritten);
         alarm(TIMEOUT);
         state = RECEIVE;
+      break;
       case RECEIVE:
         if(receiveFrame(&linkLayer))
           printf("llwrite: expected control frame but received Info instead\n");
-        if(linkLayer.frame[C_IDX] == REJ(0) || linkLayer.frame[C_IDX] == REJ(1))
+        if(linkLayer.frame[C_IDX] == RR(0) || linkLayer.frame[C_IDX] == RR(1))
+          state = END;
+        else if(linkLayer.frame[C_IDX] == REJ(0) || linkLayer.frame[C_IDX] == REJ(1))
           state = START;
         else if(linkLayer.frame[C_IDX] == DISC)
           return callDisk;
-        else
-          state = END;
       break;
+
       case END:
         alarm(0);
         sent = 1;
       break;
     }
   }
-  return bytesWritten;
+  return bytesWritten - 6; //FRAME_HEADER
 }
 
-int llread(int fd, char * buffer){
+int llread(int fd, unsigned char * buffer){
   buffer = linkLayer.frame;
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
 
     char response = receiveFrame(&linkLayer);
+    printf("%c", response);
     message[2] = response;
     message[3] = response ^ ADDRESS;
     write(fd, message, 5);
@@ -217,25 +231,26 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
   unsigned int newSeqNum;
 
 	int i = 0;
-	state = START;
+	stateRcv = START;
 
 	while(!stop){
-		switch (state) {
+    printf("stateRcv %d\n", stateRcv);
+		switch (stateRcv) {
 			case START:
 				read(lkLayer->fd, lkLayer->frame + i, 1);
 				if(lkLayer->frame[i] == FLAG){
-					state = FLAG_RCV;
+					stateRcv = FLAG_RCV;
 					i++;
 				}
 				break;
 			case FLAG_RCV:
-				read(lkLayer->fd, lkLayer->frame + i, 1);
+        read(lkLayer->fd, lkLayer->frame + i, 1);
 				if(lkLayer->frame[i] == ADDRESS){
-					state = A_RCV;
+					stateRcv = A_RCV;
 					i++;
 				}
 				else if(lkLayer->frame[i] != FLAG){//Other unexpected info
-					state = START;
+					stateRcv = START;
 					i = 0;
 				}
 				break;
@@ -244,7 +259,7 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 				read(lkLayer->fd, lkLayer->frame + i, 1);
 
         if(possibleControlField(lkLayer->frame[i])){
-					state = C_RCV;
+					stateRcv = C_RCV;
 					i++;
 				}
 				break;
@@ -273,14 +288,14 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 			case C_RCV:
 				read(lkLayer->fd, lkLayer->frame + i, 1);
 				if(lkLayer->frame[i] == (ADDRESS ^ lkLayer->frame[i-1])){
-					state = BCC1_OK;
+					stateRcv = BCC1_OK;
 					i++;
 				}
 				break;
 			case BCC1_OK:
 				read(lkLayer->fd, lkLayer->frame + i, 1);
 				if(lkLayer->frame[i] == FLAG){
-					state = END;
+					stateRcv = END;
 				}
 				break;
 			case END:
@@ -356,7 +371,7 @@ int bcc2Check(LinkLayer* lk){
 }
 
 
-int stuffing(char* buff, unsigned int* size){
+int stuffing(unsigned char* buff, unsigned int* size){
 
   unsigned int i;
 
