@@ -223,6 +223,11 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
       break;
     }
   }
+  if(retryCount == N_TRIES){
+    printf("llwrite::Exceeded number of tries\n");
+    return 0;
+  }
+
   return bytesWritten - 6; //FRAME_HEADER
 }
 
@@ -339,7 +344,7 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 * Reads the data in a Information frame
 * @param lk - LinkLayer's info struct
 * @return 0 if there's no error, 1 for destuffing error and 2 for Bcc2 check error
-* Se se tratar dum duplicado, deve fazer-se confirmação com RR*/
+*/
 int readData(LinkLayer* lk){
   char stop = 0;
   unsigned int i = 0;
@@ -405,19 +410,23 @@ int stuffing(unsigned char* buff, unsigned int* size){
 
   unsigned int i;
 
-  for(i=0; i< *size; i++){
+  for(i=0; i< *size;){
     if(buff[i] == FLAG){
       memmove(&buff[i+2], &buff[i+1], (*size) - (i+1));
       buff[i] = ESC;
       buff[i+1] = FLAG_EX;
       (*size) += 1;
+      i+=2;
     }
 
-    if(buff[i] == ESC){
+    else if(buff[i] == ESC){
       memmove(&buff[i+2], &buff[i+1], (*size) - (i+1));
       buff[i+1] = ESC_EX;
       (*size) += 1;
+      i+=2;
     }
+    else
+      i++;
   }
   return 0;
 }
