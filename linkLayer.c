@@ -154,21 +154,21 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   memmove(linkLayer.frame+4, buffer, length);
   linkLayer.frame[4+length] = bcc2;
 
-  // int i;
-  // for (i = 0; i < 5+ length; i++) {
-  //   printf("%x\n", linkLayer.frame[i]);
-  // }
-  // printf("\n\n\n");
+  int i;
+  for (i = 0; i < 5+ length; i++) {
+    printf("%x\n", linkLayer.frame[i]);
+  }
+  printf("\n\n\n");
 
   stuffing(linkLayer.frame + 4, &(lenghtStuffng));
-  linkLayer.frameSize = length + 6;
+  linkLayer.frameSize = lenghtStuffng + 5;
   linkLayer.frame[linkLayer.frameSize-1] = FLAG;
 
-  // printf("After Stuffing\n");
-  // for (i = 0; i < linkLayer.frameSize; i++) {
-  //   printf("%x\n", linkLayer.frame[i]);
-  // }
-  // printf("\n\n\n");
+  printf("After Stuffing\n");
+  for (i = 0; i < linkLayer.frameSize; i++) {
+    printf("%x\n", linkLayer.frame[i]);
+  }
+  printf("\n\n\n");
 
   /*int i;
   for (i =0; i < linkLayer.frameSize; i++) {
@@ -375,7 +375,7 @@ int readData(LinkLayer* lk){
 
 int bcc2Calc(unsigned char* buffer, int length){
   int i;
-  char xorResult = buffer[0]; //D0
+  unsigned char xorResult = buffer[0]; //D0
 
   for (i = 1; i < length; i++) {
     xorResult ^= buffer[i];
@@ -447,6 +447,7 @@ int destuffing(LinkLayer* lk){
       deletedBytes++;
     }
   }
+  lk->readBytes -= deletedBytes;
   return 0;
 }
 
