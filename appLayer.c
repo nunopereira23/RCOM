@@ -32,60 +32,65 @@ int main(int argc, char** argv)
     return -1;
   }
 
-  	if(strcmp(argv[2], "r") == 0){
-      AppLayer appLayer;
-      linkLayer.prog = RECEIVER;
+  AppLayer appLayer;
+	if(strcmp(argv[2], "r") == 0){
 
-      if((appLayer.serialPortFD = llopen(atoi(&argv[1][0]) , RECEIVER)) < 0){
-  				printf("Receiver failed to establish the connection\n");
-          return 1;
+    linkLayer.prog = RECEIVER;
 
-      appLayer.packetSize = PACKET_SIZE;
-      appLayer.packet = malloc(PACKET_SIZE);
-
-      if(receiveStartPacket(&appLayer) != 0){
-        printf("Didn't receive the start packet\n");
-      }
-
-      if(argc == 4)
-        appLayer.fileName = argv[4];
-
-      if((appLayer.fileFD = open(appLayer.fileName, O_CREAT | O_WRONLY)) < 0){
-        printf("Couldn't create file named %s\n", appLayer.fileName);
+    if((appLayer.serialPortFD = llopen(atoi(argv[1]) , RECEIVER)) < 0){
+				printf("Receiver failed to establish the connection\n");
         return 1;
-      }
+    }
+    appLayer.packetSize = PACKET_SIZE;
+    appLayer.packet = malloc(PACKET_SIZE);
 
-      receiveDataPacket(&appLayer);
-
-      close(appLayer.fileFD);
-  	}
-  	else{
-      linkLayer.prog = TRANSMISSOR;
-  		if((linkLayer.fd = llopen(atoi(&argv[1][0]), TRANSMISSOR)) < 0){
-  			printf("Transmissor failed to establish the connection fd %d\n", linkLayer.fd);
-        return 1;
-      }
-
-      appLayer.fileName = argv[4];
-      appLayer.packetSize = PACKET_SIZE;
-      appLayer.packet = malloc(PACKET_SIZE);
-
-      if((appLayer.fileFD = open(appLayer.fileName, O_RDONLY)) < 0){
-        printf("Couldn't open file named %s\n", appLayer.fileName);
-        return 1;
-      }
-
-      getFileSize(&appLayer);
-
-      if(sendControlPacket(&appLayer, START_PACKET) != 0){
-        printf("Couldn't send start packet\n");
-      }
-
-
+    if(receiveStartPacket(&appLayer) != 0){
+      printf("Didn't receive the start packet\n");
     }
 
-  	return 0;
+    if(argc == 4)
+      appLayer.fileName = argv[3];
+
+    if((appLayer.fileFD = open(appLayer.fileName, O_CREAT | O_WRONLY)) < 0){
+      printf("Couldn't create file named %s\n", appLayer.fileName);
+      return 1;
+    }
+
+    //receiveDataPacket(&appLayer);
+
+    close(appLayer.fileFD);
+	}
+	else{
+
+    linkLayer.prog = TRANSMISSOR;
+		if((appLayer.serialPortFD = llopen(atoi(argv[1]), TRANSMISSOR)) < 0){
+			printf("Transmissor failed to establish the connection fd %d\n", appLayer.serialPortFD);
+      return 1;
+    }
+
+    test();
+    return 0;
+
+    linkLayer.seqNum = 0;
+
+    appLayer.fileName = argv[3];
+    appLayer.packetSize = PACKET_SIZE;
+    appLayer.packet = malloc(PACKET_SIZE);
+
+    if((appLayer.fileFD = open(appLayer.fileName, O_RDONLY)) < 0){
+      printf("Couldn't open file named %s\n", appLayer.fileName);
+      return 1;
+    }
+
+    getFileSize(&appLayer);
+
+    if(sendControlPacket(&appLayer, START_PACKET) != 0){
+      printf("Couldn't send start packet\n");
+    }
+
+
   }
+  return 0;
 }
 
 int receiveStartPacket(AppLayer* appLayer){
@@ -138,10 +143,16 @@ int sendControlPacket(AppLayer* appLayer, unsigned char control){
 
   appLayer->packet[2] = sizeNBytes;
   appLayer->packet[sizeNBytes+1] = T_NAME;
-  appLayer->packet[sizeNBytes+2] = strlen(appLayer->fileName)+1;
+  unsigned int fileNameSize = strlen(appLayer->fileName)+1;
+  appLayer->packet[sizeNBytes+2] = fileNameSize;
 
-  memcpy(appLayer->packet + sizeNBytes+3, appLayer->fileName, strlen(appLayer->fileName)+1);
 
+  memcpy(appLayer->packet + sizeNBytes+3, appLayer->fileName, fileNameSize);
+
+  appLayer->packetSize = 5 + sizeNBytes + fileNameSize;
+
+ if(!llwrite(appLayer->serialPortFD, appLayer->packet, appLayer->packetSize))
+       return 1;
   return 0;
 }
 

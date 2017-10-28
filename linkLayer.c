@@ -184,7 +184,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
 
   unsigned char sent = 0, bytesWritten = 0;
   while(!sent && retryCount < N_TRIES){
-    printf("llWrite state %d\n", state);
+    //printf("llWrite state %d\n", state);
     switch (state) {
       case START:
         linkLayer.frameSize = frameISize;
