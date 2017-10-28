@@ -3,4 +3,10 @@
 
 int test(void);
 
+typedef struct{
+  int fileFD;
+  unsigned char* packet;
+  unsigned int packetSize;
+} AppLayer;
+
 #endif

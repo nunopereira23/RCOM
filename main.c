@@ -10,7 +10,7 @@ int main(int argc, char** argv)
         strcmp("1", argv[1])!= 0) ||
         (strcmp("r", argv[2])!= 0 &&
         strcmp("w", argv[2])!= 0) ){
-    printf("Usage:\tnSerial SerialPort and desired operation ('r' or 'w')\n\tex: serialCom /dev/ttyS0 r\n");
+    printf("Usage:\tnSerial SerialPort number and desired operation ('r' or 'w')\n\tex: serialCom 0 r\n");
     exit(1);
   }
 

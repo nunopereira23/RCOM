@@ -11,9 +11,6 @@
 #include <unistd.h>
 #include <signal.h>
 
-//
-// typedef struct{
-// } Frame;
 #define FRAME_SIZE 1024
 #define FRAME_I_DATA 1018
 

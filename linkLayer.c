@@ -13,6 +13,7 @@ void alarmHandler(int sigNum){
   printf("Alarm triggered, retryCount =  %d\n", retryCount);
   stateRcv = END;
   state = START;
+  //printf("State %d\nStateRCV %d\n", state, stateRcv);
 }
 
 
@@ -152,7 +153,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   linkLayer.frame[2] = SEQ_NUM(linkLayer.seqNum);
   linkLayer.frame[3] = SEQ_NUM(linkLayer.seqNum) ^ ADDRESS;//BCC1
   memmove(linkLayer.frame+4, buffer, length);
-  linkLayer.frame[4+length] = bcc2;
+  linkLayer.frame[4+length] =  1; //bcc2;
 
   int i;
   for (i = 0; i < 5+ length; i++) {
@@ -262,9 +263,10 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 	stateRcv = START;
 
 	while(!stop){
-    printf("stateRcv %d\n", stateRcv);
+    //printf("stateRcv %d\n", stateRcv);
 		switch (stateRcv) {
 			case START:
+        memset(lkLayer->frame, 0, lkLayer->frameSize);
 				read(lkLayer->fd, lkLayer->frame + i, 1);
 				if(lkLayer->frame[i] == FLAG){
 					stateRcv = FLAG_RCV;
@@ -331,7 +333,7 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 				break;
 		}
 	}
-  printf("\n\nEXITING ReceiveFrame\n\n");
+  // printf("\n\nEXITING ReceiveFrame\n\n");
   return 0;
 }
 
