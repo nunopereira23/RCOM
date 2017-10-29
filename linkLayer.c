@@ -153,7 +153,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   linkLayer.frame[2] = SEQ_NUM(linkLayer.seqNum);
   linkLayer.frame[3] = SEQ_NUM(linkLayer.seqNum) ^ ADDRESS;//BCC1
   memmove(linkLayer.frame+4, buffer, length);
-  linkLayer.frame[4+length] =  1; //bcc2;
+  linkLayer.frame[4+length] =  bcc2; //bcc2;
 
   int i;
   for (i = 0; i < 5+ length; i++) {
@@ -190,7 +190,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
         linkLayer.frameSize = frameISize;
         memmove(linkLayer.frame, frameCpy, linkLayer.frameSize);
         bytesWritten = write(fd, linkLayer.frame, linkLayer.frameSize);
-        printf("BytesWritten %d\n", bytesWritten);
+        //printf("BytesWritten %d\n", bytesWritten);
         alarm(TIMEOUT);
         state = RECEIVE;
       break;
@@ -230,6 +230,11 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
 int llread(int fd, unsigned char * buffer){
   buffer = linkLayer.frame;
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
+
+    printf("Data Size %d\n", linkLayer.frameSize);
+    int i;
+    for(i = 0; i < linkLayer.frameSize; i++)
+      printf("%x\n", linkLayer.frame[i]);
 
     unsigned char response = receiveFrame(&linkLayer);
     printf("llread will send %x ", response);
@@ -299,8 +304,10 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
             i++;
             read(lkLayer->fd, lkLayer->frame + i, 1);
             if((lkLayer->frame[i-2] ^ lkLayer->frame[i-1]) == lkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
-              if(lkLayer->seqNum == newSeqNum)
+              if(lkLayer->seqNum == newSeqNum){
+                  printf("Duplicated frame, \n", newSeqNum);
                   return RR((newSeqNum+1)%2);
+              }
 
 
               if(readData(lkLayer) == 0){
@@ -388,14 +395,16 @@ int bcc2Calc(unsigned char* buffer, int length){
 
 int bcc2Check(LinkLayer* lk){
   int i;
-  char xorResult = lk->frame[0]; //D0
+  unsigned char xorResult = lk->frame[0]; //D0
 
   for (i = 1; i < lk->frameSize-1; i++) {
     xorResult ^= lk->frame[i];
   }
                   /*BCC2*/
-  if(xorResult != lk->frame[lk->frameSize-1])
+  if(xorResult != lk->frame[lk->frameSize-1]){
+    printf("->BCC2Check result: %x, instead in the frame was %x\n", xorResult, lk->frame[lk->frameSize-1]);
     return 1;
+  }
 
   lk->frameSize--;//BCC2 Ignored (Deleted)
   lk->readBytes--;

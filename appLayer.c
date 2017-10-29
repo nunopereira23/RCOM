@@ -45,8 +45,10 @@ int main(int argc, char** argv)
     // test();
     // return 0;
 
-    appLayer.packetSize = PACKET_SIZE;
+    appLayer.packetSize = PACKET_SIZE; //Does nothing
     appLayer.packet = malloc(PACKET_SIZE);
+
+    linkLayer.seqNum = 1;
 
     if(receiveStartPacket(&appLayer) != 0){
       printf("Didn't receive the start packet\n");
