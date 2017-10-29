@@ -62,8 +62,9 @@ int main(int argc, char** argv)
       return 1;
     }
 
-    receiveFile(&appLayer);
+    printf("Received %u Bytes\n", receiveFile(&appLayer));
 
+    llclose(appLayer.serialPortFD);
     close(appLayer.fileFD);
 	}
 	else{
@@ -94,7 +95,7 @@ int main(int argc, char** argv)
       printf("Couldn't send start packet\n");
     }
 
-    sendFile(&appLayer);
+    printf("Sent %d bytes form file\n", sendFile(&appLayer));
 
     llclose(appLayer.serialPortFD);
     close(appLayer.fileFD);
@@ -104,21 +105,25 @@ int main(int argc, char** argv)
 
 unsigned int receiveFile(AppLayer* appLayer){
   unsigned int readBytes = 0;
-  char stop = 0;
-  while(!stop){
-    appLayer->packetSize =  llread(appLayer->serialPortFD, appLayer->packet);
-    readBytes += appLayer->packetSize-4;
-    if(appLayer->packet[0] != END_PACKET)
-      stop = 1;
 
-    write(appLayer->fileFD, appLayer->packet + 4, appLayer->packetSize-4);
-  }
+  while(1){
+      appLayer->packetSize =  llread(appLayer->serialPortFD, appLayer->packet);
+
+    if(appLayer->packetSize != 0){
+      if(appLayer->packet[0] != END_PACKET)
+        break;
+
+      readBytes += appLayer->packetSize-4;
+      write(appLayer->fileFD, appLayer->packet + 4, appLayer->packetSize-4);
+    }
+}
   return readBytes;
 }
 
 unsigned int sendFile(AppLayer* appLayer){
   unsigned int writtenBytes = 0;
-  unsigned int justRead  = 1;
+  int readFromFile  = 1;
+  int llwriteReturn;
 
   appLayer->packet[0] = DATA_PACKET;
   appLayer->packet[1] = 0;
@@ -126,11 +131,15 @@ unsigned int sendFile(AppLayer* appLayer){
   appLayer->packet[3] = (PACKET_SIZE - 4) % 256;
 
 
-  read(appLayer->fileFD, appLayer->packet + 4, PACKET_SIZE-4);
-  while(justRead){
+  readFromFile = read(appLayer->fileFD, appLayer->packet + 4, PACKET_SIZE-4);
+  while(readFromFile){
       appLayer->packet[1] = (appLayer->packet[1] + 1) % 256;
-       if((writtenBytes += llwrite(appLayer->serialPortFD, appLayer->packet, PACKET_SIZE) - 4))
-          justRead =  read(appLayer->fileFD, appLayer->packet + 4, PACKET_SIZE-4);
+      llwriteReturn = llwrite(appLayer->serialPortFD, appLayer->packet, readFromFile+4);
+      printf("llwriteReturn %d\n", llwriteReturn);
+       if(llwriteReturn-4){
+          readFromFile =  read(appLayer->fileFD, appLayer->packet + 4, PACKET_SIZE-4);
+          writtenBytes += llwriteReturn - 4;
+      }
   }
    sendControlPacket(appLayer, END_PACKET);
    return writtenBytes;
@@ -213,36 +222,4 @@ void getFileSize(AppLayer* appLayer){
 
   fstat(appLayer->fileFD, &statBuf);
   appLayer->fileSize = statBuf.st_size;
-}
-
-int test(void){
-
-  if(linkLayer.prog == TRANSMISSOR){
-      linkLayer.seqNum = 0;
-    unsigned char packect[] = "Tudo bem caro Duarte?";
-
-    // printf("Antes Stuffing\n");
-    // printf("Size %d\n", size);
-    // int i;
-    // for (i = 0; i < size; i++) {
-    //   printf("%x\n", packect[i]);
-    // }
-    // printf("\n\n\n");
-    // stuffing(packect, &size);
-    //
-    // printf("Apos Stuffing\n");
-    // printf("Size %d\n", size);
-
-    printf("llwrite wrote %d\n", llwrite(linkLayer.fd, packect, 22));
-  }
-  else{
-    linkLayer.seqNum = 1;
-    printf("llread read %d\n", llread(linkLayer.fd, linkLayer.frame));
-    int i;
-    for(i = 0; i < linkLayer.frameSize; i++){
-      printf("Hex %x\n", linkLayer.frame[i]);
-    }
-    printf("Dados \"%s\"\n", linkLayer.frame);
-  }
-  return 0;
 }

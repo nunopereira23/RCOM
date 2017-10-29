@@ -3,8 +3,6 @@
 
 #define PACKET_SIZE 1018
 
-int test(void);
-
 typedef struct{
   int fileFD;
   int serialPortFD;

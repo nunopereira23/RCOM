@@ -155,26 +155,21 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   memmove(linkLayer.frame+4, buffer, length);
   linkLayer.frame[4+length] =  bcc2; //bcc2;
 
-  int i;
-  for (i = 0; i < 5+ length; i++) {
-    printf("%x\n", linkLayer.frame[i]);
-  }
-  printf("\n\n\n");
+  // int i;
+  // for (i = 0; i < 5+ length; i++) {
+  //   printf("%x\n", linkLayer.frame[i]);
+  // }
+  // printf("\n\n\n");
 
   stuffing(linkLayer.frame + 4, &(lenghtStuffng));
   linkLayer.frameSize = lenghtStuffng + 5;
   linkLayer.frame[linkLayer.frameSize-1] = FLAG;
 
-  printf("After Stuffing\n");
-  for (i = 0; i < linkLayer.frameSize; i++) {
-    printf("%x\n", linkLayer.frame[i]);
-  }
-  printf("\n\n\n");
-
-  /*int i;
-  for (i =0; i < linkLayer.frameSize; i++) {
-    printf("Frame idx %i - %x\n", i, linkLayer.frame[i]);
-  }*/
+  // printf("After Stuffing\n");
+  // for (i = 0; i < linkLayer.frameSize; i++) {
+  //   printf("%x\n", linkLayer.frame[i]);
+  // }
+  // printf("\n\n\n");
 
   unsigned char frameCpy[linkLayer.frameSize];
   unsigned int frameISize = linkLayer.frameSize;
@@ -182,7 +177,8 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
 
   state=START;
 
-  unsigned char sent = 0, bytesWritten = 0;
+  unsigned char sent = 0;
+  unsigned int bytesWritten = 0;
   while(!sent && retryCount < N_TRIES){
     //printf("llWrite state %d\n", state);
     switch (state) {
@@ -190,7 +186,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
         linkLayer.frameSize = frameISize;
         memmove(linkLayer.frame, frameCpy, linkLayer.frameSize);
         bytesWritten = write(fd, linkLayer.frame, linkLayer.frameSize);
-        //printf("BytesWritten %d\n", bytesWritten);
+        printf("BytesWritten %d\n", bytesWritten);
         alarm(TIMEOUT);
         state = RECEIVE;
       break;
@@ -207,14 +203,11 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
           printf("llwrite REJ\n");
           state = START;
         }
-        else if(linkLayer.frame[C_IDX] == DISC){
-          printf("llwrite DISC\n");
-          return callDisk;
-        }
       break;
 
       case END:
         alarm(0);
+        linkLayer.seqNum = (linkLayer.seqNum + 1) % 2;
         sent = 1;
       break;
     }
@@ -224,7 +217,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
     return 0;
   }
 
-  return bytesWritten - 6; //FRAME_HEADER
+  return bytesWritten - (lenghtStuffng-length) - 6; //FRAME_HEADER
 }
 
 int llread(int fd, unsigned char * buffer){
@@ -469,6 +462,7 @@ int destuffing(LinkLayer* lk){
 }
 
 int llclose(int fd){
+  printf("Entered llclose\n");
   unsigned char discMsg[] = {FLAG, ADDRESS, DISC, DISC ^ ADDRESS, FLAG};
   retryCount = 0;
   if(linkLayer.prog == TRANSMISSOR){
@@ -476,11 +470,13 @@ int llclose(int fd){
       write(fd, discMsg, 5);
       alarm(TIMEOUT);
       receiveFrame(&linkLayer);
+      printf("llclose read CONTROL %x\n", linkLayer.frame[C_IDX]);
       if(linkLayer.frame[C_IDX] == DISC){
         discMsg[2] = UA;
         discMsg[3] = UA ^ ADDRESS;
         write(fd, discMsg, 5);
         alarm(0);
+        printf("Exiting llclose...\n");
         return 0;
       }
     }
@@ -488,14 +484,19 @@ int llclose(int fd){
   }
   else{
     while(retryCount < N_TRIES){
-      write(fd, discMsg, 5);
-      alarm(TIMEOUT);
       receiveFrame(&linkLayer);
-      if(linkLayer.frame[C_IDX] == UA){
-        alarm(0);
-        return 0;
+      if(linkLayer.frame[C_IDX] == DISC){
+        write(fd, discMsg, 5);
+        alarm(TIMEOUT);
+        receiveFrame(&linkLayer);
+        if(linkLayer.frame[C_IDX] == UA){
+          alarm(0);
+          return 0;
+        }
       }
     }
   return -1;
   }
+  close(fd);
+  return 0;
 }
