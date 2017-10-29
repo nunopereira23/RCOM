@@ -16,7 +16,8 @@ typedef struct{
 
 int sendControlPacket(AppLayer* appLayer, unsigned char control);
 int receiveStartPacket(AppLayer* appLayer);
-int receiveDataPacket(AppLayer* appLayer);
+unsigned int receiveFile(AppLayer* appLayer);
+unsigned int sendFile(AppLayer* appLayer);
 
 void getFileSize(AppLayer* appLayer);
 

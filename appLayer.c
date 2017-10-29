@@ -62,7 +62,7 @@ int main(int argc, char** argv)
       return 1;
     }
 
-    //receiveDataPacket(&appLayer);
+    receiveFile(&appLayer);
 
     close(appLayer.fileFD);
 	}
@@ -94,9 +94,46 @@ int main(int argc, char** argv)
       printf("Couldn't send start packet\n");
     }
 
+    sendFile(&appLayer);
 
+    llclose(appLayer.serialPortFD);
+    close(appLayer.fileFD);
   }
   return 0;
+}
+
+unsigned int receiveFile(AppLayer* appLayer){
+  unsigned int readBytes = 0;
+  char stop = 0;
+  while(!stop){
+    appLayer->packetSize =  llread(appLayer->serialPortFD, appLayer->packet);
+    readBytes += appLayer->packetSize-4;
+    if(appLayer->packet[0] != END_PACKET)
+      stop = 1;
+
+    write(appLayer->fileFD, appLayer->packet + 4, appLayer->packetSize-4);
+  }
+  return readBytes;
+}
+
+unsigned int sendFile(AppLayer* appLayer){
+  unsigned int writtenBytes = 0;
+  unsigned int justRead  = 1;
+
+  appLayer->packet[0] = DATA_PACKET;
+  appLayer->packet[1] = 0;
+  appLayer->packet[2] = (PACKET_SIZE - 4) / 256;
+  appLayer->packet[3] = (PACKET_SIZE - 4) % 256;
+
+
+  read(appLayer->fileFD, appLayer->packet + 4, PACKET_SIZE-4);
+  while(justRead){
+      appLayer->packet[1] = (appLayer->packet[1] + 1) % 256;
+       if((writtenBytes += llwrite(appLayer->serialPortFD, appLayer->packet, PACKET_SIZE) - 4))
+          justRead =  read(appLayer->fileFD, appLayer->packet + 4, PACKET_SIZE-4);
+  }
+   sendControlPacket(appLayer, END_PACKET);
+   return writtenBytes;
 }
 
 int receiveStartPacket(AppLayer* appLayer){
@@ -139,15 +176,15 @@ int sendControlPacket(AppLayer* appLayer, unsigned char control){
 
 
 
-  unsigned char sizeNBytes = appLayer->fileSize / 255;
-  printf("FileSize/255 = %d\n", sizeNBytes);
-  if(appLayer->fileSize % 255){
+  unsigned char sizeNBytes = appLayer->fileSize / 256;
+  printf("FileSize/256 = %d\n", sizeNBytes);
+  if(appLayer->fileSize % 256){
     sizeNBytes++;
 
     for(i = 0; i < sizeNBytes-1; i++){
       appLayer->packet[3 + i] = 255;
     }
-    appLayer->packet[3 + sizeNBytes-1] = appLayer->fileSize % 255;
+    appLayer->packet[3 + sizeNBytes-1] = appLayer->fileSize % 256;
   }
   else{
     for(i = 0; i < sizeNBytes; i++){
