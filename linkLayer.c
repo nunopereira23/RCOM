@@ -228,20 +228,20 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
 }
 
 int llread(int fd, unsigned char * buffer){
-  buffer = linkLayer.frame;
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
 
-    printf("Data Size %d\n", linkLayer.frameSize);
-    int i;
-    for(i = 0; i < linkLayer.frameSize; i++)
-      printf("%x\n", linkLayer.frame[i]);
+  printf("Data Size %d\n", linkLayer.frameSize);
+  int i;
+  for(i = 0; i < linkLayer.frameSize; i++)
+    printf("%x\n", linkLayer.frame[i]);
 
-    unsigned char response = receiveFrame(&linkLayer);
-    printf("llread will send %x ", response);
-    message[2] = response;
-    message[3] = response ^ ADDRESS;
-    write(fd, message, 5);
+  unsigned char response = receiveFrame(&linkLayer);
+  printf("llread will send %x\n", response);
+  message[2] = response;
+  message[3] = response ^ ADDRESS;
+  write(fd, message, 5);
 
+  memcpy(buffer, linkLayer.frame, linkLayer.readBytes);
   return linkLayer.readBytes;
 }
 
@@ -305,7 +305,7 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
             read(lkLayer->fd, lkLayer->frame + i, 1);
             if((lkLayer->frame[i-2] ^ lkLayer->frame[i-1]) == lkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
               if(lkLayer->seqNum == newSeqNum){
-                  printf("Duplicated frame, \n", newSeqNum);
+                  printf("Duplicated frame, %d\n", newSeqNum);
                   return RR((newSeqNum+1)%2);
               }
 
@@ -378,6 +378,12 @@ int readData(LinkLayer* lk){
     lk->readBytes = 0;
     return 2;
   }
+
+  // printf("READ DTA\n");
+  // int j;
+  // for (j = 0; j < lk->frameSize; j++) {
+  //   printf("%x\n", lk->frame[j]);
+  // }
 
   return 0;
 }

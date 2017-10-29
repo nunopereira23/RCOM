@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     if(argc == 4)
       appLayer.fileName = argv[3];
 
-    if((appLayer.fileFD = open(appLayer.fileName, O_CREAT | O_WRONLY)) < 0){
+    if((appLayer.fileFD = open(appLayer.fileName, O_CREAT | O_WRONLY, 0666)) < 0){
       printf("Couldn't create file named %s\n", appLayer.fileName);
       return 1;
     }
@@ -100,7 +100,14 @@ int main(int argc, char** argv)
 }
 
 int receiveStartPacket(AppLayer* appLayer){
-  while(!llread(appLayer->serialPortFD, appLayer->packet))
+  while(!(appLayer->packetSize = llread(appLayer->serialPortFD, appLayer->packet)));
+
+  printf("\n\n------------AppLayer------\n");
+  int j;
+  for (j = 0; j < appLayer->packetSize; j++) {
+    printf("%x\n", appLayer->packet[j]);
+  }
+
 
   if(appLayer->packet[0] != START_PACKET)
       return 1;
@@ -115,11 +122,11 @@ int receiveStartPacket(AppLayer* appLayer){
   }
 
 
-  if(appLayer->packet[2 + appLayer->packet[2]] != T_NAME)
+  if(appLayer->packet[3 + appLayer->packet[2]] != T_NAME)
       return 1;
 
-  appLayer->fileName = malloc(appLayer->packet[3 + appLayer->packet[2]]);
-  memcpy(appLayer->fileName, appLayer->packet + 4 + appLayer->packet[2], appLayer->packet[3 + appLayer->packet[2]]);
+  appLayer->fileName = malloc(appLayer->packet[4 + appLayer->packet[2]]);
+  memcpy(appLayer->fileName, appLayer->packet + 5 + appLayer->packet[2], appLayer->packet[4 + appLayer->packet[2]]);
 
   return 0;
 }
