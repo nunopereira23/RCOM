@@ -41,6 +41,10 @@ int main(int argc, char** argv)
 				printf("Receiver failed to establish the connection\n");
         return 1;
     }
+
+    // test();
+    // return 0;
+
     appLayer.packetSize = PACKET_SIZE;
     appLayer.packet = malloc(PACKET_SIZE);
 
@@ -68,8 +72,8 @@ int main(int argc, char** argv)
       return 1;
     }
 
-    test();
-    return 0;
+    // test();
+    // return 0;
 
     linkLayer.seqNum = 0;
 
@@ -125,14 +129,16 @@ int sendControlPacket(AppLayer* appLayer, unsigned char control){
   appLayer->packet[1] = T_SIZE;
 
 
+
   unsigned char sizeNBytes = appLayer->fileSize / 255;
+  printf("FileSize/255 = %d\n", sizeNBytes);
   if(appLayer->fileSize % 255){
     sizeNBytes++;
 
     for(i = 0; i < sizeNBytes-1; i++){
       appLayer->packet[3 + i] = 255;
     }
-    appLayer->packet[3 + sizeNBytes] = appLayer->fileSize % 255;
+    appLayer->packet[3 + sizeNBytes-1] = appLayer->fileSize % 255;
   }
   else{
     for(i = 0; i < sizeNBytes; i++){
@@ -142,12 +148,12 @@ int sendControlPacket(AppLayer* appLayer, unsigned char control){
 
 
   appLayer->packet[2] = sizeNBytes;
-  appLayer->packet[sizeNBytes+1] = T_NAME;
+  appLayer->packet[sizeNBytes+3] = T_NAME;
   unsigned int fileNameSize = strlen(appLayer->fileName)+1;
-  appLayer->packet[sizeNBytes+2] = fileNameSize;
+  appLayer->packet[sizeNBytes+4] = fileNameSize;
 
 
-  memcpy(appLayer->packet + sizeNBytes+3, appLayer->fileName, fileNameSize);
+  memcpy(appLayer->packet + sizeNBytes+5, appLayer->fileName, fileNameSize);
 
   appLayer->packetSize = 5 + sizeNBytes + fileNameSize;
 
