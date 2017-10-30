@@ -2,7 +2,7 @@
 #define APP_LAYER_H
 
 //PACKET_SIZE = FRAME_SIZE - 6
-#define PACKET_SIZE 58
+#define PACKET_SIZE 1018
 
 typedef struct{
   int fileFD;

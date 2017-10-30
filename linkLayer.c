@@ -438,7 +438,7 @@ int destuffing(LinkLayer* lk){
 }
 
 int llclose(int fd){
-  printf("Entered llclose %d\n");
+  printf("Entered llclose \n");
   unsigned char discMsg[] = {FLAG, ADDRESS, DISC, DISC ^ ADDRESS, FLAG};
   retryCount = 0;
   if(linkLayer.prog == RECEIVER){
