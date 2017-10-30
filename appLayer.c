@@ -36,6 +36,7 @@ int main(int argc, char** argv)
 	if(strcmp(argv[2], "r") == 0){
 
     linkLayer.prog = RECEIVER;
+    printf("receiver prog %d\n", linkLayer.prog);
 
     if((appLayer.serialPortFD = llopen(atoi(argv[1]) , RECEIVER)) < 0){
 				printf("Receiver failed to establish the connection\n");
@@ -64,19 +65,18 @@ int main(int argc, char** argv)
 
     printf("Received %u Bytes\n", receiveFile(&appLayer));
 
-    llclose(appLayer.serialPortFD);
     close(appLayer.fileFD);
+    llclose(appLayer.serialPortFD);
+
 	}
 	else{
 
     linkLayer.prog = TRANSMISSOR;
+    printf("Transmissor prog %d\n", linkLayer.prog);
 		if((appLayer.serialPortFD = llopen(atoi(argv[1]), TRANSMISSOR)) < 0){
 			printf("Transmissor failed to establish the connection fd %d\n", appLayer.serialPortFD);
       return 1;
     }
-
-    // test();
-    // return 0;
 
     linkLayer.seqNum = 0;
 
@@ -97,6 +97,7 @@ int main(int argc, char** argv)
 
     printf("Sent %d bytes form file\n", sendFile(&appLayer));
 
+
     llclose(appLayer.serialPortFD);
     close(appLayer.fileFD);
   }
@@ -110,7 +111,7 @@ unsigned int receiveFile(AppLayer* appLayer){
       appLayer->packetSize =  llread(appLayer->serialPortFD, appLayer->packet);
 
     if(appLayer->packetSize != 0){
-      if(appLayer->packet[0] != END_PACKET)
+      if(appLayer->packet[0] == END_PACKET)
         break;
 
       readBytes += appLayer->packetSize-4;

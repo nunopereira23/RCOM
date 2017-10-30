@@ -16,12 +16,12 @@
 
 
 typedef struct {
+char prog;
 int fd; /* /dev/ttySx File descriptor/*/
 unsigned int seqNum;
 unsigned int frameSize;
 unsigned int readBytes;
 unsigned char frame[FRAME_SIZE]; /*Trama*/
-char prog;
 } LinkLayer;
 
 LinkLayer linkLayer;//Global variable

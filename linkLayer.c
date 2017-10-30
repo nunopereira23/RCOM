@@ -5,7 +5,7 @@ unsigned int retryCount, state, stateRcv;
 static struct termios oldtio;
 
 /**
-* @ llopen() SigAlm handler, it increments nTries
+* @ SigAlm handler, it increments nTries
 * and changes state to SET_SEND
 */
 
@@ -14,13 +14,12 @@ void alarmHandler(int sigNum){
   printf("Alarm triggered, retryCount =  %d\n", retryCount);
   stateRcv = END;
   state = START;
-  //printf("State %d\nStateRCV %d\n", state, stateRcv);
 }
 
 
 /**
 * @ Establishes a serial connection between two machines
-* @ parm port -
+* @ parm port
 * @ parm flag - boolean flag, 0 for emmisor and 1 stands for receiver
 * @ return return the serial port's fd or a negative number if an error occurs
 */
@@ -39,8 +38,6 @@ int llopen(int port, char flag){
 
   strcat(path, portString);
 
-
-  //printf("path %s\n", path);
   if((linkLayer.fd = open(path, O_RDWR | O_NOCTTY )) < 0){
     printf("llopen()::Couldn't open serialPort %d\n", port);
     return -1;
@@ -62,7 +59,7 @@ int llopen(int port, char flag){
   /* set input mode (non-canonical, no echo,...) */
   newtio.c_lflag = 0;
 
-  newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
+  newtio.c_cc[VTIME]    = 0;
   newtio.c_cc[VMIN]     = 1;
 
   tcflush(linkLayer.fd, TCIOFLUSH);
@@ -181,7 +178,6 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   unsigned char sent = 0;
   unsigned int bytesWritten = 0;
   while(!sent && retryCount < N_TRIES){
-    //printf("llWrite state %d\n", state);
     switch (state) {
       case START:
         linkLayer.frameSize = frameISize;
@@ -223,8 +219,6 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
 
 int llread(int fd, unsigned char * buffer){
   unsigned char message[] = {FLAG, ADDRESS, 0, 0, FLAG};
-
-  printf("Data Size %d\n", linkLayer.frameSize);
   int i;
   for(i = 0; i < linkLayer.frameSize; i++)
     printf("%x\n", linkLayer.frame[i]);
@@ -262,7 +256,6 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 	stateRcv = START;
 
 	while(!stop){
-    //printf("stateRcv %d\n", stateRcv);
 		switch (stateRcv) {
 			case START:
         memset(lkLayer->frame, 0, lkLayer->frameSize);
@@ -463,12 +456,28 @@ int destuffing(LinkLayer* lk){
 }
 
 int llclose(int fd){
-  printf("Entered llclose\n");
+  printf("Entered llclose %d\n", linkLayer.prog);
   unsigned char discMsg[] = {FLAG, ADDRESS, DISC, DISC ^ ADDRESS, FLAG};
   retryCount = 0;
-  if(linkLayer.prog == TRANSMISSOR){
+  if(linkLayer.prog == RECEIVER){
     while(retryCount < N_TRIES){
-      write(fd, discMsg, 5);
+      printf("Entrou Recetor\n");
+      receiveFrame(&linkLayer);
+      if(linkLayer.frame[C_IDX] == DISC){
+        write(fd, discMsg, 5);
+        alarm(TIMEOUT);
+        receiveFrame(&linkLayer);
+        if(linkLayer.frame[C_IDX] == UA){
+          alarm(0);
+          break;
+        }
+      }
+    }
+  }
+  else{
+    while(retryCount < N_TRIES){
+      printf("Entrou\n");
+      printf("TRANSMISSOR sent %lu\n", write(fd, discMsg, 5));
       alarm(TIMEOUT);
       receiveFrame(&linkLayer);
       printf("llclose read CONTROL %x\n", linkLayer.frame[C_IDX]);
@@ -477,20 +486,7 @@ int llclose(int fd){
         discMsg[3] = UA ^ ADDRESS;
         write(fd, discMsg, 5);
         alarm(0);
-      }
-    }
-  }
-  else{
-    while(retryCount < N_TRIES){
-      receiveFrame(&linkLayer);
-      if(linkLayer.frame[C_IDX] == DISC){
-        write(fd, discMsg, 5);
-        alarm(TIMEOUT);
-        receiveFrame(&linkLayer);
-        if(linkLayer.frame[C_IDX] == UA){
-          alarm(0);
-          return 0;
-        }
+        break;
       }
     }
   }
