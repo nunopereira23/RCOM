@@ -151,23 +151,12 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   linkLayer.frame[2] = SEQ_NUM(linkLayer.seqNum);
   linkLayer.frame[3] = SEQ_NUM(linkLayer.seqNum) ^ ADDRESS;//BCC1
   memmove(linkLayer.frame+4, buffer, length);
-  linkLayer.frame[4+length] =  bcc2; //bcc2;
-
-  // int i;
-  // for (i = 0; i < 5+ length; i++) {
-  //   printf("%x\n", linkLayer.frame[i]);
-  // }
-  // printf("\n\n\n");
+  linkLayer.frame[4+length] =  bcc2;
 
   stuffing(linkLayer.frame + 4, &(lenghtStuffng));
   linkLayer.frameSize = lenghtStuffng + 5;
   linkLayer.frame[linkLayer.frameSize-1] = FLAG;
 
-  // printf("After Stuffing\n");
-  // for (i = 0; i < linkLayer.frameSize; i++) {
-  //   printf("%x\n", linkLayer.frame[i]);
-  // }
-  // printf("\n\n\n");
 
   unsigned char frameCpy[linkLayer.frameSize];
   unsigned int frameISize = linkLayer.frameSize;
@@ -258,15 +247,15 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 	while(!stop){
 		switch (stateRcv) {
 			case START:
-        memset(lkLayer->frame, 0, lkLayer->frameSize);
-				read(lkLayer->fd, lkLayer->frame + i, 1);
-				if(lkLayer->frame[i] == FLAG){
-					stateRcv = FLAG_RCV;
-					i++;
-				}
-				break;
+                memset(lkLayer->frame, 0, lkLayer->frameSize);
+    			read(lkLayer->fd, lkLayer->frame + i, 1);
+    			if(lkLayer->frame[i] == FLAG){
+    				stateRcv = FLAG_RCV;
+    				i++;
+    			}
+    			break;
 			case FLAG_RCV:
-        read(lkLayer->fd, lkLayer->frame + i, 1);
+                read(lkLayer->fd, lkLayer->frame + i, 1);
 				if(lkLayer->frame[i] == ADDRESS){
 					stateRcv = A_RCV;
 					i++;
@@ -280,34 +269,34 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 			case A_RCV:
 				read(lkLayer->fd, lkLayer->frame + i, 1);
 
-        if(possibleControlField(lkLayer->frame[i])){
-					stateRcv = C_RCV;
-					i++;
-				}
+                if(possibleControlField(lkLayer->frame[i])){
+        					stateRcv = C_RCV;
+        					i++;
+        				}
 
 				else if(lkLayer->frame[i] == SEQ_NUM0 || lkLayer->frame[i] == SEQ_NUM1){
-            lkLayer->readBytes = 0;
-            newSeqNum = lkLayer->frame[i] >> 6;
-            i++;
-            read(lkLayer->fd, lkLayer->frame + i, 1);
-            if((lkLayer->frame[i-2] ^ lkLayer->frame[i-1]) == lkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
-              if(lkLayer->seqNum == newSeqNum){
-                  printf("Duplicated frame, %d\n", newSeqNum);
-                  return RR((newSeqNum+1)%2);
-              }
+                    lkLayer->readBytes = 0;
+                    newSeqNum = lkLayer->frame[i] >> 6;
+                    i++;
+                    read(lkLayer->fd, lkLayer->frame + i, 1);
+                    if((lkLayer->frame[i-2] ^ lkLayer->frame[i-1]) == lkLayer->frame[i]){//BCC1 Check <=> A ^ C (seqNum) = BCC1
+                      if(lkLayer->seqNum == newSeqNum){
+                          printf("Duplicated frame, %d\n", newSeqNum);
+                          return RR((newSeqNum+1)%2);
+                      }
 
 
-              if(readData(lkLayer) == 0){
-                lkLayer->seqNum = (lkLayer->seqNum+1)%2;
-                return RR(newSeqNum);
-              }
-              else
-                return REJ(lkLayer->seqNum); //Requesting  REJ_0
-            }
-            i--;
+                      if(readData(lkLayer) == 0){
+                        lkLayer->seqNum = (lkLayer->seqNum+1)%2;
+                        return RR(newSeqNum);
+                      }
+                      else
+                        return REJ(lkLayer->seqNum); //Requesting  REJ_0
+                    }
+                    i--;
+                    break;
+                }
             break;
-          }
-      break;
 
 			case C_RCV:
 				read(lkLayer->fd, lkLayer->frame + i, 1);
@@ -327,7 +316,6 @@ int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 				break;
 		}
 	}
-  // printf("\n\nEXITING ReceiveFrame\n\n");
   return 0;
 }
 
@@ -365,12 +353,6 @@ int readData(LinkLayer* lk){
     lk->readBytes = 0;
     return 2;
   }
-
-  // printf("READ DTA\n");
-  // int j;
-  // for (j = 0; j < lk->frameSize; j++) {
-  //   printf("%x\n", lk->frame[j]);
-  // }
 
   return 0;
 }
@@ -456,32 +438,32 @@ int destuffing(LinkLayer* lk){
 }
 
 int llclose(int fd){
-  printf("Entered llclose %d\n", linkLayer.prog);
+  printf("Entered llclose %d\n");
   unsigned char discMsg[] = {FLAG, ADDRESS, DISC, DISC ^ ADDRESS, FLAG};
   retryCount = 0;
   if(linkLayer.prog == RECEIVER){
     while(retryCount < N_TRIES){
-      printf("Entrou Recetor\n");
       receiveFrame(&linkLayer);
       if(linkLayer.frame[C_IDX] == DISC){
+        printf("DISC Received\n");
         write(fd, discMsg, 5);
         alarm(TIMEOUT);
         receiveFrame(&linkLayer);
         if(linkLayer.frame[C_IDX] == UA){
-          alarm(0);
-          break;
+            printf("UA Received\n");
+            alarm(0);
+            break;
         }
       }
     }
   }
   else{
     while(retryCount < N_TRIES){
-      printf("Entrou\n");
-      printf("TRANSMISSOR sent %lu\n", write(fd, discMsg, 5));
+      write(fd, discMsg, 5);
       alarm(TIMEOUT);
       receiveFrame(&linkLayer);
-      printf("llclose read CONTROL %x\n", linkLayer.frame[C_IDX]);
       if(linkLayer.frame[C_IDX] == DISC){
+        printf("DISC Received\n");
         discMsg[2] = UA;
         discMsg[3] = UA ^ ADDRESS;
         write(fd, discMsg, 5);

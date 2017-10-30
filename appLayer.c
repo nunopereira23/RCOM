@@ -36,17 +36,12 @@ int main(int argc, char** argv)
 	if(strcmp(argv[2], "r") == 0){
 
     linkLayer.prog = RECEIVER;
-    printf("receiver prog %d\n", linkLayer.prog);
 
     if((appLayer.serialPortFD = llopen(atoi(argv[1]) , RECEIVER)) < 0){
 				printf("Receiver failed to establish the connection\n");
         return 1;
     }
 
-    // test();
-    // return 0;
-
-    appLayer.packetSize = PACKET_SIZE; //Does nothing
     appLayer.packet = malloc(PACKET_SIZE);
 
     linkLayer.seqNum = 1;
@@ -72,7 +67,6 @@ int main(int argc, char** argv)
 	else{
 
     linkLayer.prog = TRANSMISSOR;
-    printf("Transmissor prog %d\n", linkLayer.prog);
 		if((appLayer.serialPortFD = llopen(atoi(argv[1]), TRANSMISSOR)) < 0){
 			printf("Transmissor failed to establish the connection fd %d\n", appLayer.serialPortFD);
       return 1;
@@ -95,7 +89,7 @@ int main(int argc, char** argv)
       printf("Couldn't send start packet\n");
     }
 
-    printf("Sent %d bytes form file\n", sendFile(&appLayer));
+    printf("Sent %d bytes from file\n", sendFile(&appLayer));
 
     free(appLayer.packet);
     llclose(appLayer.serialPortFD);
@@ -136,7 +130,7 @@ unsigned int sendFile(AppLayer* appLayer){
   while(readFromFile){
       appLayer->packet[1] = (appLayer->packet[1] + 1) % 256;
       llwriteReturn = llwrite(appLayer->serialPortFD, appLayer->packet, readFromFile+4);
-      printf("llwriteReturn %d\n", llwriteReturn);
+
        if(llwriteReturn-4){
           readFromFile =  read(appLayer->fileFD, appLayer->packet + 4, PACKET_SIZE-4);
           writtenBytes += llwriteReturn - 4;
@@ -148,13 +142,6 @@ unsigned int sendFile(AppLayer* appLayer){
 
 int receiveStartPacket(AppLayer* appLayer){
   while(!(appLayer->packetSize = llread(appLayer->serialPortFD, appLayer->packet)));
-
-  printf("\n\n------------AppLayer------\n");
-  int j;
-  for (j = 0; j < appLayer->packetSize; j++) {
-    printf("%x\n", appLayer->packet[j]);
-  }
-
 
   if(appLayer->packet[0] != START_PACKET)
       return 1;
@@ -187,7 +174,7 @@ int sendControlPacket(AppLayer* appLayer, unsigned char control){
 
 
   unsigned char sizeNBytes = appLayer->fileSize / 256;
-  printf("FileSize/256 = %d\n", sizeNBytes);
+
   if(appLayer->fileSize % 256){
     sizeNBytes++;
 
