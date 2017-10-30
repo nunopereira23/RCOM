@@ -2,6 +2,7 @@
 #include "stateMachines.h"
 
 unsigned int retryCount, state, stateRcv;
+static struct termios oldtio;
 
 /**
 * @ llopen() SigAlm handler, it increments nTries
@@ -46,7 +47,7 @@ int llopen(int port, char flag){
   }
 
 
-  struct termios oldtio, newtio;
+  struct termios newtio;
 
   if ( tcgetattr(linkLayer.fd, &oldtio) == -1) { /* save current port settings */
     perror("tcgetattr");
@@ -214,7 +215,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   }
   if(retryCount == N_TRIES){
     printf("llwrite::Exceeded number of tries\n");
-    return 0;
+    exit(1);
   }
 
   return bytesWritten - (lenghtStuffng-length) - 6; //FRAME_HEADER
@@ -476,11 +477,8 @@ int llclose(int fd){
         discMsg[3] = UA ^ ADDRESS;
         write(fd, discMsg, 5);
         alarm(0);
-        printf("Exiting llclose...\n");
-        return 0;
       }
     }
-    return -1;
   }
   else{
     while(retryCount < N_TRIES){
@@ -495,8 +493,17 @@ int llclose(int fd){
         }
       }
     }
-  return -1;
   }
+  if(retryCount == N_TRIES){
+    printf("llclose::Exceeded number of tries\n");
+    exit(1);
+  }
+
+  if ( tcsetattr(fd, TCSANOW, &oldtio) == -1) {
+    perror("tcsetattr");
+    exit(-1);
+  }
+  printf("Exiting llclose...\n");
   close(fd);
   return 0;
 }
