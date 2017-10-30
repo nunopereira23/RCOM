@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <time.h>
 
 
 
@@ -100,7 +101,8 @@ int main(int argc, char** argv)
 
 unsigned int receiveFile(AppLayer* appLayer){
   unsigned int readBytes = 0;
-
+struct timespec start, end;
+clock_gettime(CLOCK_REALTIME, &start);
   while(1){
       appLayer->packetSize =  llread(appLayer->serialPortFD, appLayer->packet);
 
@@ -112,6 +114,8 @@ unsigned int receiveFile(AppLayer* appLayer){
       write(appLayer->fileFD, appLayer->packet + 4, appLayer->packetSize-4);
     }
 }
+clock_gettime(CLOCK_REALTIME, &end);
+printf("Time elapsed: %lu s\n", end.tv_sec - start.tv_sec);
   return readBytes;
 }
 
