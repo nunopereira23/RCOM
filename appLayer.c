@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 
     printf("Sent %d bytes form file\n", sendFile(&appLayer));
 
-
+    free(appLayer.packet);
     llclose(appLayer.serialPortFD);
     close(appLayer.fileFD);
   }

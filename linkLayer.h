@@ -21,7 +21,7 @@ int fd; /* /dev/ttySx File descriptor/*/
 unsigned int seqNum;
 unsigned int frameSize;
 unsigned int readBytes;
-unsigned char frame[FRAME_SIZE]; /*Trama*/
+unsigned char frame[2*FRAME_SIZE]; /*Trama*/
 } LinkLayer;
 
 LinkLayer linkLayer;//Global variable
