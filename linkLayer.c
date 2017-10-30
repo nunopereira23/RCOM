@@ -145,7 +145,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
   retryCount = 0;
   unsigned int lenghtStuffng = length +1;
   unsigned char bcc2 = bcc2Calc(buffer, length);
-  printf("Bcc2 %x\n", bcc2);
+
   linkLayer.frame[0] = FLAG;
   linkLayer.frame[1] = ADDRESS;
   linkLayer.frame[2] = SEQ_NUM(linkLayer.seqNum);
@@ -172,7 +172,6 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
         linkLayer.frameSize = frameISize;
         memmove(linkLayer.frame, frameCpy, linkLayer.frameSize);
         bytesWritten = write(fd, linkLayer.frame, linkLayer.frameSize);
-        printf("BytesWritten %d\n", bytesWritten);
         alarm(TIMEOUT);
         state = RECEIVE;
       break;
@@ -203,7 +202,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
     exit(1);
   }
 
-  return bytesWritten - (lenghtStuffng-length) - 6; //FRAME_HEADER
+  return bytesWritten - (lenghtStuffng-length) - 5; //FRAME_HEADER
 }
 
 int llread(int fd, unsigned char * buffer){
@@ -438,7 +437,7 @@ int destuffing(LinkLayer* lk){
 }
 
 int llclose(int fd){
-  printf("Entered llclose %d\n");
+  printf("Entered llclose\n");
   unsigned char discMsg[] = {FLAG, ADDRESS, DISC, DISC ^ ADDRESS, FLAG};
   retryCount = 0;
   if(linkLayer.prog == RECEIVER){
