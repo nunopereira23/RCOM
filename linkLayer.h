@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define FRAME_SIZE 1024
+#define FRAME_SIZE 64000
 
 
 typedef struct {
@@ -26,7 +26,7 @@ unsigned char frame[2*FRAME_SIZE]; /*Trama*/
 LinkLayer linkLayer;//Global variable
 
 
-#define BAUDRATE B38400
+#define BAUDRATE B115200
 //#define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0

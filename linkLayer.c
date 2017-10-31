@@ -476,6 +476,7 @@ int llclose(int fd){
     exit(1);
   }
 
+  sleep(1);
   if ( tcsetattr(fd, TCSANOW, &oldtio) == -1) {
     perror("tcsetattr");
     exit(-1);
