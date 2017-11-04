@@ -29,15 +29,17 @@ unsigned int choice;
 
 do{
   printf("Please choose the desired baudrate\n"
-  "1-B1200 | 2-B2400 | 3-B4800 | 4-B19200 | 5-B38400 | 6-B115200\n");
-  scanf("%d\n", &choice);
+  "1-B1200 | 2-B2400 | 3-B4800 | 4-B19200 | 5-B38400 | 6-B115200\n"
+  "Choice: ");
+  scanf("%d", &choice);
 }while(choice < 1 || choice > 6);
 linkLayer.baudrate = baudArray[choice-1];
-printf("\n\n");
+printf("1235\n\n");
 
 do{
-  printf("Please insert the frame size (bytes) [1024 - 64000]\n");
-  scanf("%d\n", &choice);
+  printf("Please insert the frame size (bytes) [1024 - 64000]\n"
+        "Choice: ");
+  scanf("%d", &choice);
 }while(choice < 1024 || choice > 64000);
 FRAME_SIZE = choice;
 
