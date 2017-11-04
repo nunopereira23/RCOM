@@ -2,8 +2,8 @@
 #define APP_LAYER_H
 
 //PACKET_SIZE = FRAME_SIZE - 6
-#define PACKET_SIZE FRAME_SIZE-6
-
+// #define PACKET_SIZE FRAME_SIZE-6
+unsigned int PACKET_SIZE;
 typedef struct{
   int fileFD;
   int serialPortFD;

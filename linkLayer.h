@@ -11,16 +11,17 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define FRAME_SIZE 64000
-
+//#define FRAME_SIZE 64000
+unsigned int FRAME_SIZE;
 
 typedef struct {
 char prog;
-int fd; /* /dev/ttySx File descriptor/*/
+int fd; /* /dev/ttySx File descriptor*/
+unsigned int baudrate;
 unsigned int seqNum;
 unsigned int frameSize;
 unsigned int readBytes;
-unsigned char frame[2*FRAME_SIZE]; /*Trama*/
+unsigned char* frame; /*Trama*/
 } LinkLayer;
 
 LinkLayer linkLayer;//Global variable

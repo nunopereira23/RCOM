@@ -15,7 +15,7 @@ int main(int argc, char** argv)
         (strcmp("1", argv[1])!= 0)) ||
         ((strcmp("r", argv[2])!= 0) &&
         (strcmp("w", argv[2])!= 0))){
-    printf("Usage:\tnSerial SerialPort number and desired operation ('r' or 'w')\n\tex: serialCom 0 r\n");
+    printf("Usage:\n\tserialCom <numPort> r [fileName]\n\tserialCom <numPort> w <fileName>\n");
     exit(1);
   }
 
@@ -23,6 +23,23 @@ int main(int argc, char** argv)
     printf("Usage ex. serialCom 0 w filePath\n");
   }
 
+const unsigned int baudArray[] = {B1200, B2400, B4800, B19200, B38400, B115200};
+
+unsigned int choice;
+
+do{
+  printf("Please choose the desired baudrate\n"
+  "1-B1200 | 2-B2400 | 3-B4800 | 4-B19200 | 5-B38400 | 6-B115200\n");
+  scanf("%d\n", &choice);
+}while(choice < 1 || choice > 6);
+linkLayer.baudrate = baudArray[choice-1];
+printf("\n\n");
+
+do{
+  printf("Please insert the frame size (bytes) [1024 - 64000]\n");
+  scanf("%d\n", &choice);
+}while(choice < 1024 || choice > 64000);
+FRAME_SIZE = choice;
 
   struct sigaction sigact;
   sigact.sa_handler = alarmHandler;
@@ -43,6 +60,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    PACKET_SIZE = FRAME_SIZE-6;
     appLayer.packet = malloc(PACKET_SIZE);
 
     linkLayer.seqNum = 1;
@@ -76,7 +94,7 @@ int main(int argc, char** argv)
     linkLayer.seqNum = 0;
 
     appLayer.fileName = argv[3];
-    appLayer.packetSize = PACKET_SIZE;
+    PACKET_SIZE = FRAME_SIZE-6;
     appLayer.packet = malloc(PACKET_SIZE);
 
     if((appLayer.fileFD = open(appLayer.fileName, O_RDONLY)) < 0){

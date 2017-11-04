@@ -52,7 +52,7 @@ int llopen(int port, char flag){
   }
 
   bzero(&newtio, sizeof(newtio));
-  newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+  newtio.c_cflag = linkLayer.baudrate | CS8 | CLOCAL | CREAD;
   newtio.c_iflag = IGNPAR;
   newtio.c_oflag = 0;
 
@@ -68,6 +68,8 @@ int llopen(int port, char flag){
     perror("tcsetattr");
     exit(-1);
   }
+
+linkLayer.frame = malloc(2*FRAME_SIZE);
 
   if(flag == TRANSMISSOR){
     int connected = 0;
@@ -477,6 +479,7 @@ int llclose(int fd){
   }
 
   sleep(1);
+  free(linkLayer.frame);
   if ( tcsetattr(fd, TCSANOW, &oldtio) == -1) {
     perror("tcsetattr");
     exit(-1);
