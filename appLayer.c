@@ -21,6 +21,7 @@ int main(int argc, char** argv)
 
   if((strcmp("w", argv[2]) == 0) && argc < 4){
     printf("Usage ex. serialCom 0 w filePath\n");
+    exit(2);
   }
 
 const unsigned int baudArray[] = {B1200, B2400, B4800, B19200, B38400, B115200};
