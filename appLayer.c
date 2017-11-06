@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <math.h>
 
 
 #define STATISTICS
@@ -140,9 +141,10 @@ clock_gettime(CLOCK_REALTIME, &start);
 }
 clock_gettime(CLOCK_REALTIME, &end);
 printf("Time elapsed: %f s\n", getElapsedTimeSecs(&start, &end));
-#ifdef STATISTICS
-  printf("FileSize: %d || %d\n", appLayer->fileSize, appLayer->fileSize / PACKET_SIZE);
-  printf("Tf = %f s\n", getElapsedTimeSecs(&start, &end)/(appLayer->fileSize / PACKET_SIZE));
+
+#ifdef STATISCS
+  // printf("FileSize: %d || ceil %f\n", appLayer->fileSize, ceil(appLayer->fileSize*1.0 / PACKET_SIZE));
+  printf("Tf = %f s\n", getElapsedTimeSecs(&start, &end)/ceil(appLayer->fileSize*1.0 / PACKET_SIZE));
 #endif
   return readBytes;
 }
