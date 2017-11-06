@@ -37,8 +37,8 @@ LinkLayer linkLayer;//Global variable
 #define N_TRIES 3
 
 //Statistics
-#define T_PROP 10 //Signal propagation  time in miliseconds
-#define FER 0 //Frame Error Ratio ∈ [0 , 1]
+#define T_PROP 100 //Signal propagation  time in miliseconds
+#define FER 0 //Frame Error Ratio belongs to [0 , 1]
 
 int receiveFrame(LinkLayer* linkLayer);
 int readData(LinkLayer* lk);

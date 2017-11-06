@@ -4,9 +4,8 @@
 unsigned int retryCount, state, stateRcv;
 static struct termios oldtio;
 
-#ifdef STATISCS
-  srand(time(NULL));
-#endif
+#define STATISTICS
+
 /**
 * @ SigAlm handler, it increments nTries,
 * changes state to SET_SEND and stateRcv to END
@@ -177,7 +176,7 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
       case START:
         linkLayer.frameSize = frameISize;
         memmove(linkLayer.frame, frameCpy, linkLayer.frameSize);
-        #ifdef STATISCS
+        #ifdef STATISTICS
           usleep(T_PROP*1000);
         #endif
         bytesWritten = write(fd, linkLayer.frame, linkLayer.frameSize);
@@ -224,7 +223,7 @@ int llread(int fd, unsigned char * buffer){
   printf("llread will send %x\n", response);
   message[2] = response;
   message[3] = response ^ ADDRESS;
-  #ifdef STATISCS
+  #ifdef STATISTICS
     usleep(T_PROP*1000);
   #endif
   write(fd, message, 5);

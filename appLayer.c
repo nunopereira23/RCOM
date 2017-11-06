@@ -4,11 +4,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#define STATISCS
+
+#define STATISTICS
 
 
 int main(int argc, char** argv)
 {
+  #ifdef STATISTICS
+    srand(time(NULL));
+  #endif
 
   if ( (argc < 3) ||
         ((strcmp("0", argv[1])!= 0) &&
@@ -136,7 +140,7 @@ clock_gettime(CLOCK_REALTIME, &start);
 }
 clock_gettime(CLOCK_REALTIME, &end);
 printf("Time elapsed: %f s\n", getElapsedTimeSecs(&start, &end));
-#ifdef STATISCS
+#ifdef STATISTICS
   printf("FileSize: %d || %d\n", appLayer->fileSize, appLayer->fileSize / PACKET_SIZE);
   printf("Tf = %f s\n", getElapsedTimeSecs(&start, &end)/(appLayer->fileSize / PACKET_SIZE));
 #endif
