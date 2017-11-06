@@ -21,7 +21,7 @@ unsigned int receiveFile(AppLayer* appLayer);
 unsigned int sendFile(AppLayer* appLayer);
 
 void getFileSize(AppLayer* appLayer);
-unsigned long getElapsedTimeSecs(struct timespec* start, struct timespec* end);
+double getElapsedTimeSecs(struct timespec* start, struct timespec* end);
 
 //PACKET CONTROL
 #define DATA_PACKET 1

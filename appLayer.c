@@ -37,7 +37,7 @@ do{
 linkLayer.baudrate = baudArray[choice-1];
 
 do{
-  printf("Please insert the frame size (bytes) [1024 - 64000]\n"
+  printf("Please insert the frame size (bytes) [512 - 64000]\n"
         "Choice: ");
   scanf("%d", &choice);
 }while(choice < 512 || choice > 64000);
@@ -135,9 +135,9 @@ clock_gettime(CLOCK_REALTIME, &start);
     }
 }
 clock_gettime(CLOCK_REALTIME, &end);
-printf("Time elapsed: %lu s\n", getElapsedTimeSecs(&start, &end));
+printf("Time elapsed: %f s\n", getElapsedTimeSecs(&start, &end));
 #ifdef STATISCS
-  printf("Tf = %lu s", getElapsedTimeSecs(&start, &end)/((appLayer->fileSize *8 ) / PACKET_SIZE));
+  printf("Tf = %f s\n", getElapsedTimeSecs(&start, &end)/((appLayer->fileSize *8 ) / PACKET_SIZE));
 #endif
   return readBytes;
 }
@@ -239,6 +239,6 @@ void getFileSize(AppLayer* appLayer){
   appLayer->fileSize = statBuf.st_size;
 }
 
-unsigned long getElapsedTimeSecs(struct timespec* start, struct timespec* end){
+double getElapsedTimeSecs(struct timespec* start, struct timespec* end){
   return (end->tv_sec + end->tv_nsec/1000000000) - (start->tv_sec + start->tv_nsec/1000000000);
 }
