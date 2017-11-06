@@ -4,9 +4,12 @@
 unsigned int retryCount, state, stateRcv;
 static struct termios oldtio;
 
+#ifdef STATISCS
+  srand(time(NULL));
+#endif
 /**
-* @ SigAlm handler, it increments nTries
-* and changes state to SET_SEND
+* @ SigAlm handler, it increments nTries,
+* changes state to SET_SEND and stateRcv to END
 */
 
 void alarmHandler(int sigNum){
@@ -139,6 +142,7 @@ linkLayer.frame = malloc(2*FRAME_SIZE);
       if(write(linkLayer.fd, message, 5) == 0)
         printf("Failed to transmit an UA\n");
   }
+
 	printf("Connection established\n");
   return linkLayer.fd;
 }
@@ -173,6 +177,9 @@ int llwrite(int fd, unsigned char* buffer, unsigned int length){
       case START:
         linkLayer.frameSize = frameISize;
         memmove(linkLayer.frame, frameCpy, linkLayer.frameSize);
+        #ifdef STATISCS
+          usleep(T_PROP*1000);
+        #endif
         bytesWritten = write(fd, linkLayer.frame, linkLayer.frameSize);
         alarm(TIMEOUT);
         state = RECEIVE;
@@ -217,6 +224,9 @@ int llread(int fd, unsigned char * buffer){
   printf("llread will send %x\n", response);
   message[2] = response;
   message[3] = response ^ ADDRESS;
+  #ifdef STATISCS
+    usleep(T_PROP*1000);
+  #endif
   write(fd, message, 5);
 
   memcpy(buffer, linkLayer.frame, linkLayer.readBytes);
@@ -235,8 +245,7 @@ int possibleControlField(unsigned char controlField){
 /**
 * Generic frame receiver, it can handle Info Frames as well as Supervision Frame_Size
 * @param framelkLayer
-* @param controlField expected  frame's contcontrolFieldrol field
-* @return 0 if received without errors and  RR(Num) or REJ(Num) if there's a proble with data within the frame
+* @return 0 if SupervisionFrame was received without errors and  RR(Num) or REJ(Num)  for data frame
 */
 int receiveFrame(LinkLayer* lkLayer){ //ADDRESS 0x03 or 0x01
 	int stop = 0;
@@ -349,12 +358,18 @@ int readData(LinkLayer* lk){
     return 1;
   }
 
-  if(bcc2Check(lk)){
+  if(bcc2Check(lk) || bcc2Error(FER)){
     printf("Failed BCC2 check\n");
     lk->readBytes = 0;
     return 2;
   }
 
+  return 0;
+}
+
+int bcc2Error(float errorRatio){
+  if((rand() % 100 + 1) <= errorRatio*100)
+    return 1;
   return 0;
 }
 

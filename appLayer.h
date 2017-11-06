@@ -1,6 +1,8 @@
 #ifndef APP_LAYER_H
 #define APP_LAYER_H
 
+#include <time.h>
+
 //PACKET_SIZE = FRAME_SIZE - 6
 // #define PACKET_SIZE FRAME_SIZE-6
 unsigned int PACKET_SIZE;
@@ -19,6 +21,7 @@ unsigned int receiveFile(AppLayer* appLayer);
 unsigned int sendFile(AppLayer* appLayer);
 
 void getFileSize(AppLayer* appLayer);
+unsigned long getElapsedTimeSecs(struct timespec* start, struct timespec* end);
 
 //PACKET CONTROL
 #define DATA_PACKET 1

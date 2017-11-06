@@ -26,9 +26,6 @@ unsigned char* frame; /*Trama*/
 
 LinkLayer linkLayer;//Global variable
 
-
-#define BAUDRATE B115200
-//#define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
@@ -38,6 +35,10 @@ LinkLayer linkLayer;//Global variable
 
 #define TIMEOUT 3
 #define N_TRIES 3
+
+//Statistics
+#define T_PROP 10 //Signal propagation  time in miliseconds
+#define FER 0 //Frame Error Ratio ∈ [0 , 1]
 
 int receiveFrame(LinkLayer* linkLayer);
 int readData(LinkLayer* lk);
@@ -51,12 +52,9 @@ int llread(int fd, unsigned char * buffer);
 int llwrite(int fd, unsigned char * buffer, unsigned int length);
 int llclose(int fd);
 void alarmHandler(int sigNum);
-
+int bcc2Error(float errorRatio);
 
 #define C_IDX 2
-
-//Returns
-#define callDisk -1
 
 //Info Frame
 #define INFO 30

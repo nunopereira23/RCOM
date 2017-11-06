@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <time.h>
 
+#define STATISCS
 
 
 int main(int argc, char** argv)
@@ -35,7 +35,6 @@ do{
   scanf("%d", &choice);
 }while(choice < 1 || choice > 6);
 linkLayer.baudrate = baudArray[choice-1];
-printf("1235\n\n");
 
 do{
   printf("Please insert the frame size (bytes) [1024 - 64000]\n"
@@ -136,7 +135,10 @@ clock_gettime(CLOCK_REALTIME, &start);
     }
 }
 clock_gettime(CLOCK_REALTIME, &end);
-printf("Time elapsed: %lu s\n", end.tv_sec - start.tv_sec);
+printf("Time elapsed: %lu s\n", getElapsedTimeSecs(&start, &end));
+#ifdef STATISCS
+  printf("Tf = %lu s", getElapsedTimeSecs(&start, &end)/((appLayer->fileSize *8 ) / PACKET_SIZE));
+#endif
   return readBytes;
 }
 
@@ -235,4 +237,8 @@ void getFileSize(AppLayer* appLayer){
 
   fstat(appLayer->fileFD, &statBuf);
   appLayer->fileSize = statBuf.st_size;
+}
+
+unsigned long getElapsedTimeSecs(struct timespec* start, struct timespec* end){
+  return (end->tv_sec + end->tv_nsec/1000000000) - (start->tv_sec + start->tv_nsec/1000000000);
 }
