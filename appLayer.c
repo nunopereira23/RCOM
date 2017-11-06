@@ -40,7 +40,7 @@ do{
   printf("Please insert the frame size (bytes) [1024 - 64000]\n"
         "Choice: ");
   scanf("%d", &choice);
-}while(choice < 1024 || choice > 64000);
+}while(choice < 512 || choice > 64000);
 FRAME_SIZE = choice;
 
   struct sigaction sigact;
