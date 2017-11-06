@@ -180,7 +180,7 @@ int receiveStartPacket(AppLayer* appLayer){
   int i;
   appLayer->fileSize = 0;
   for(i = 0; i < appLayer->packet[2]; i++){
-    appLayer->fileSize += appLayer->packet[i + 2];
+    appLayer->fileSize += appLayer->packet[3 + i];
   }
 
 
@@ -201,15 +201,15 @@ int sendControlPacket(AppLayer* appLayer, unsigned char control){
 
 
 
-  unsigned char sizeNBytes = appLayer->fileSize / 256;
+  unsigned char sizeNBytes = appLayer->fileSize / 255;
 
-  if(appLayer->fileSize % 256){
+  if(appLayer->fileSize % 255){
     sizeNBytes++;
 
     for(i = 0; i < sizeNBytes-1; i++){
       appLayer->packet[3 + i] = 255;
     }
-    appLayer->packet[3 + sizeNBytes-1] = appLayer->fileSize % 256;
+    appLayer->packet[3 + sizeNBytes-1] = appLayer->fileSize - 255*(sizeNBytes-1);
   }
   else{
     for(i = 0; i < sizeNBytes; i++){
@@ -238,6 +238,7 @@ void getFileSize(AppLayer* appLayer){
 
   fstat(appLayer->fileFD, &statBuf);
   appLayer->fileSize = statBuf.st_size;
+  printf("FileSize %d\n", appLayer->fileSize);
 }
 
 double getElapsedTimeSecs(struct timespec* start, struct timespec* end){
