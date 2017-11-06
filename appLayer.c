@@ -137,7 +137,8 @@ clock_gettime(CLOCK_REALTIME, &start);
 clock_gettime(CLOCK_REALTIME, &end);
 printf("Time elapsed: %f s\n", getElapsedTimeSecs(&start, &end));
 #ifdef STATISCS
-  printf("Tf = %f s\n", getElapsedTimeSecs(&start, &end)/((appLayer->fileSize *8 ) / PACKET_SIZE));
+  printf("FileSize: %d || %d\n", appLayer->fileSize, appLayer->fileSize / PACKET_SIZE);
+  printf("Tf = %f s\n", getElapsedTimeSecs(&start, &end)/(appLayer->fileSize / PACKET_SIZE));
 #endif
   return readBytes;
 }
