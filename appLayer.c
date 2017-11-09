@@ -137,15 +137,12 @@ clock_gettime(CLOCK_REALTIME, &start);
 
       readBytes += appLayer->packetSize-4;
       write(appLayer->fileFD, appLayer->packet + 4, appLayer->packetSize-4);
+      printf("Percentage Completed: %.02f%%\n", (readBytes*1.0/appLayer->fileSize)*100);
     }
 }
 clock_gettime(CLOCK_REALTIME, &end);
 printf("Time elapsed: %f s\n", getElapsedTimeSecs(&start, &end));
 
-#ifdef STATISCS
-  // printf("FileSize: %d || ceil %f\n", appLayer->fileSize, ceil(appLayer->fileSize*1.0 / PACKET_SIZE));
-  printf("Tf = %f s\n", getElapsedTimeSecs(&start, &end)/ceil(appLayer->fileSize*1.0 / PACKET_SIZE));
-#endif
   return readBytes;
 }
 
@@ -248,5 +245,5 @@ void getFileSize(AppLayer* appLayer){
 }
 
 double getElapsedTimeSecs(struct timespec* start, struct timespec* end){
-  return (end->tv_sec + end->tv_nsec/1000000000) - (start->tv_sec + start->tv_nsec/1000000000);
+  return (end->tv_sec + end->tv_nsec/1000000000.0) - (start->tv_sec + start->tv_nsec/1000000000.0);
 }
