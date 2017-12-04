@@ -1,4 +1,5 @@
 #ifndef URL_PARSER_H
+#define DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +16,7 @@ typedef struct{
   char* username;
   char* password;
   char* path;
+  char* fileName;
   struct hostent* h;
   int cmdPort;
   int dataPort;

@@ -1,5 +1,4 @@
 #include "urlParser.h"
-#define DEBUG
 
 int parseUrl(char* fullUrl, FTP* ftp){
   if(strncmp(fullUrl, "ftp://", 6)){
@@ -25,12 +24,17 @@ int parseUrl(char* fullUrl, FTP* ftp){
     userLength = colon - (fullUrl + 6);
     passLength = at - colon - 1;
 
-    ftp->username = malloc(userLength);
-    ftp->password = malloc(passLength);
+    ftp->username = malloc(userLength + 1);
+    ftp->password = malloc(passLength + 1);
     strncpy(ftp->username, fullUrl + 6, userLength);
+    ftp->username[userLength] = '\0';
+
     strncpy(ftp->password, colon + 1, passLength);
+    ftp->password[passLength] = '\0';
 
     strncpy(hostname, at + 1, pathSlash - at - 1);
+    hostname[pathSlash - at - 1] = '\0';
+
   }
   else{
     ftp->username = malloc(10);
@@ -38,7 +42,8 @@ int parseUrl(char* fullUrl, FTP* ftp){
     ftp->username = "anonymous";
     ftp->password  = "pass";
 
-    strncpy(hostname, fullUrl + 6, pathSlash - fullUrl);
+    strncpy(hostname, fullUrl + 6, pathSlash - fullUrl - 6);
+    hostname[pathSlash - fullUrl - 6] = '\0';
   }
 
   ftp->path = pathSlash + 1;
