@@ -1,0 +1,59 @@
+#include "urlParser.h"
+#define DEBUG
+
+int parseUrl(char* fullUrl, FTP* ftp){
+  if(strncmp(fullUrl, "ftp://", 6)){
+    printf("Invalid URL, it must begin with \"ftp://\"\n");
+    exit(1);
+  }
+
+  char hostname[MAX_STRING_LENGHT];
+  char* at = strchr(fullUrl + 6, '@');
+  char* pathSlash = strchr(fullUrl + 6, '/');
+
+  if(pathSlash == NULL || *(pathSlash + 1) == '\0'){
+    printf("Invalid URL, it must have a /path\n");
+    exit(1);
+  }
+
+  int userLength = 10;
+  int passLength = 5;
+
+  if(at != NULL){
+    char* colon = strchr(fullUrl + 6, ':');
+
+    userLength = colon - (fullUrl + 6);
+    passLength = at - colon - 1;
+
+    ftp->username = malloc(userLength);
+    ftp->password = malloc(passLength);
+    strncpy(ftp->username, fullUrl + 6, userLength);
+    strncpy(ftp->password, colon + 1, passLength);
+
+    strncpy(hostname, at + 1, pathSlash - at - 1);
+  }
+  else{
+    ftp->username = malloc(10);
+    ftp->password = malloc(5);
+    ftp->username = "anonymous";
+    ftp->password  = "pass";
+
+    strncpy(hostname, fullUrl + 6, pathSlash - fullUrl);
+  }
+
+  ftp->path = pathSlash + 1;
+
+#ifdef DEBUG
+  printf("Username: %s - size: %d\n", ftp->username, userLength);
+  printf("Password: %s - size: %d\n", ftp->password, passLength);
+  printf("Path: %s - size: %lu\n", ftp->path, strlen(ftp->path));
+  printf("Hostname: %s - size: %lu\n", hostname, strlen(hostname));
+#endif
+
+  if ((ftp->h = gethostbyname(hostname)) == NULL) {
+      herror("gethostbyname");
+      exit(1);
+  }
+
+  return 0;
+}
