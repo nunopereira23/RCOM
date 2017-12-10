@@ -60,5 +60,9 @@ int parseUrl(char* fullUrl, FTP* ftp){
       exit(1);
   }
 
+  #ifdef DEBUG
+    printf("parseUrl::Host's Ip: %s\n", inet_ntoa(*((struct in_addr *)ftp->h->h_addr)));
+  #endif
+
   return 0;
 }

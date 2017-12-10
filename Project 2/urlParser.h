@@ -18,8 +18,8 @@ typedef struct{
   char* path;
   char* fileName;
   struct hostent* h;
-  int cmdPort;
-  int dataPort;
+  int cmdFD;
+  int dataFD;
 } FTP;
 
 int parseUrl(char* fullUrl, FTP* ftp);
