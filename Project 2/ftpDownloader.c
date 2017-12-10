@@ -58,15 +58,15 @@ int main(int argc, char* argv[]){
   }
 
   //Set Transfer type to binary mode
-  writeCmd(&ftp, (char*[]){"TYPE", "I", NULL});
+  writeCmd(&ftp, (char*[]){"TYPE ", "I", NULL});
+  receiveCmdResponse(&ftp, cmdBuff);
+
+  // //Download File
+  writeCmd(&ftp, (char*[]){"RETR ", ftp.path, NULL});
   receiveCmdResponse(&ftp, cmdBuff);
 
 
-
-printf("AQUI\n");
-  // //Download File
-  // writeCmd(&ftp, (char*[]){"PASV", NULL});
-  // receiveCmdResponse(&ftp, cmdBuff);
+  receiveFile(&ftp);
 
   //Exit
   writeCmd(&ftp, (char*[]){"QUIT", NULL});
@@ -76,6 +76,24 @@ printf("AQUI\n");
   close(ftp.cmdFD);
   return 0;
 }
+
+
+void receiveFile(FTP* ftp){
+  char dataBuff[1024];
+  int fileFD;
+  int readBytes;
+
+  if((fileFD = open(ftp->fileName, O_CREAT | O_WRONLY, 0666)) < 0){
+    printf("receiveFile::Error creating file named %s\n", ftp->fileName);
+  }
+
+  while((readBytes = read(ftp->dataFD, dataBuff, sizeof(dataBuff)))){
+      write(fileFD, dataBuff, readBytes);
+  }
+  close(fileFD);
+}
+
+
 
 void findFileName(char* pathName, char** fileName){
   char* lastSlashPos = pathName;
@@ -121,7 +139,7 @@ int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort){
   
   bzero((char*)&server_addr,sizeof(server_addr));
 	server_addr.sin_family = ftp->h->h_addrtype; //The type of address being returned; usually AF_INET.
-	server_addr.sin_addr.s_addr = inet_addr(inet_ntoa(*((struct in_addr *)ipAddress)));	/*32 bit Internet address network byte ordered*/
+	server_addr.sin_addr.s_addr = inet_addr(inet_ntoa(*((struct in_addr *)ftp->h->h_addr)));	/*32 bit Internet address network byte ordered*/
 	server_addr.sin_port = htons(dataPort);		/*server TCP port must be network byte ordered */
 
 
@@ -139,10 +157,13 @@ int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort){
 }
 
 void receiveCmdResponse(FTP* ftp, char* cmdBuff){
+  bzero(cmdBuff, CMD_BUFF_LEN);
   read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN);
   printf("%s\n", cmdBuff);
   
-  if((cmdBuff[0] - '0' != POSITIVE_COMP_REPLY) && (cmdBuff[0] - '0' != POSITIVE_INT_REPLY)){
+  if((cmdBuff[0] - '0' != POSITIVE_COMP_REPLY) && 
+    (cmdBuff[0] - '0' != POSITIVE_INT_REPLY) && 
+    cmdBuff[0] - '0' != POSITIVE_PRE_REPLY){
     printf("receiveCmdResponse::Server response error\n");
     exit(2);
   }
