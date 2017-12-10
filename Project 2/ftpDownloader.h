@@ -23,9 +23,13 @@
 int main(int argc, char* argv[]);
 void findFileName(char* pathName, char** fileName);
 int establishCmdConnection(FTP* ftp);
+int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort);
 
 //Command handling functions
 void writeCmd(FTP* ftp, char** cmdArgs);
 void receiveCmdResponse(FTP* ftp, char* cmdBuff);
+
+//UTILITIES
+void addressCat(char* ipFrag1, char* ipFrag2, char* ipFrag3, char* ipFrag4, char* ipAddress);
 
 #endif
