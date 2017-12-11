@@ -51,8 +51,8 @@ int parseUrl(char* fullUrl, FTP* ftp){
 #ifdef DEBUG
   printf("Username: %s - size: %d\n", ftp->username, userLength);
   printf("Password: %s - size: %d\n", ftp->password, passLength);
-  printf("Path: %s - size: %lu\n", ftp->path, strlen(ftp->path));
-  printf("Hostname: %s - size: %lu\n", hostname, strlen(hostname));
+  printf("Path: %s - size: %u\n", ftp->path, strlen(ftp->path));
+  printf("Hostname: %s - size: %u\n", hostname, strlen(hostname));
 #endif
 
   if ((ftp->h = gethostbyname(hostname)) == NULL) {

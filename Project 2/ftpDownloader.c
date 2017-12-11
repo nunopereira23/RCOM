@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
   //Example Response 227 Entering Passive Mode (90,130,70,73,91,143).
 
   int dataPort = 0;
-  char ipAddress[20], ipFrag1[4], ipFrag2[4], ipFrag3[4], ipFrag4[4], portFrag1[10], portFrag2[10]; //Potencially a problem
+  char ipAddress[30], ipFrag1[4], ipFrag2[4], ipFrag3[4], ipFrag4[4], portFrag1[10], portFrag2[10]; //Potencially a problem
   sscanf(cmdBuff, "%*[^(](%[^,],%[^,],%[^,],%[^,],%[^,],%[^)]%*[)]%*[.]%*[\n]", ipFrag1, ipFrag2, ipFrag3, ipFrag4, portFrag1, portFrag2);
 
   dataPort = 256 * atoi(portFrag1) + atoi(portFrag2);
@@ -96,8 +96,11 @@ void receiveFile(FTP* ftp){
 
 
 void findFileName(char* pathName, char** fileName){
-  char* lastSlashPos = pathName;
-  char* slashPos =  strtok(pathName, "/");
+	char path[strlen(pathName) + 1];
+	memcpy(path, pathName, strlen(pathName) + 1);
+
+  char* lastSlashPos = path;
+  char* slashPos =  strtok(path, "/");
   while((slashPos = strtok(NULL, "/"))){
     lastSlashPos = slashPos;
   }
@@ -135,9 +138,11 @@ int establishCmdConnection(FTP* ftp){
 }
 
 int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort){
-   struct sockaddr_in server_addr;
+   	struct sockaddr_in server_addr;
   
-  bzero((char*)&server_addr,sizeof(server_addr));
+	ftp->h = gethostbyname(ipAddress);
+
+	bzero((char*)&server_addr,sizeof(server_addr));
 	server_addr.sin_family = ftp->h->h_addrtype; //The type of address being returned; usually AF_INET.
 	server_addr.sin_addr.s_addr = inet_addr(inet_ntoa(*((struct in_addr *)ftp->h->h_addr)));	/*32 bit Internet address network byte ordered*/
 	server_addr.sin_port = htons(dataPort);		/*server TCP port must be network byte ordered */
@@ -158,9 +163,11 @@ int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort){
 
 void receiveCmdResponse(FTP* ftp, char* cmdBuff){
   bzero(cmdBuff, CMD_BUFF_LEN);
-  read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN);
-  printf("%s\n", cmdBuff);
-  
+	do{
+	  read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN);
+	  printf("%s", cmdBuff);
+	}while(cmdBuff[3] != ' ');  
+
   if((cmdBuff[0] - '0' != POSITIVE_COMP_REPLY) && 
     (cmdBuff[0] - '0' != POSITIVE_INT_REPLY) && 
     cmdBuff[0] - '0' != POSITIVE_PRE_REPLY){
@@ -184,7 +191,7 @@ void writeCmd(FTP* ftp, char** cmdArgs){
   strcat(buff, "\n"); //The server reads the command until a newline
 
   #ifdef DEBUG
-    printf("writeCmd::FullCMD(%lu): %s\n", strlen(buff), buff);
+    printf("writeCmd::FullCMD(%u): %s\n", strlen(buff), buff);
   #endif
 
   write(ftp->cmdFD, buff, strlen(buff));
