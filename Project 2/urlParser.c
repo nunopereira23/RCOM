@@ -39,8 +39,8 @@ int parseUrl(char* fullUrl, FTP* ftp){
   else{
     ftp->username = malloc(10);
     ftp->password = malloc(5);
-    ftp->username = "anonymous";
-    ftp->password  = "pass";
+    strcpy(ftp->username, "anonymous");
+    strcpy(ftp->password, "pass");
 
     strncpy(hostname, fullUrl + 6, pathSlash - fullUrl - 6);
     hostname[pathSlash - fullUrl - 6] = '\0';

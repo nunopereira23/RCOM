@@ -22,7 +22,7 @@
 #define POSITIVE_INT_REPLY 3
 #define POSITIVE_PRE_REPLY 1
 
-#define CMD_BUFF_LEN 100
+#define CMD_BUFF_LEN 1024
 
 
 int main(int argc, char* argv[]);

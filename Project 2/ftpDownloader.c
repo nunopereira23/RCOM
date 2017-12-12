@@ -19,9 +19,8 @@ int main(int argc, char* argv[]){
       exit(1);
   }
 
-  char cmdBuff[100];
+  char cmdBuff[CMD_BUFF_LEN];
   receiveCmdResponse(&ftp, cmdBuff);
-  //receiveCmdResponse(&ftp, cmdBuff);
 
   //USER username
   writeCmd(&ftp, (char*[]){"USER ", ftp.username, NULL});
@@ -74,6 +73,8 @@ int main(int argc, char* argv[]){
 
   close(ftp.dataFD);
   close(ftp.cmdFD);
+  free(ftp.username);
+  free(ftp.password);
   return 0;
 }
 
@@ -119,10 +120,6 @@ int establishCmdConnection(FTP* ftp){
 	server_addr.sin_family = ftp->h->h_addrtype; //The type of address being returned; usually AF_INET.
 	server_addr.sin_addr.s_addr = inet_addr(inet_ntoa(*((struct in_addr *)ftp->h->h_addr)));	/*32 bit Internet address network byte ordered*/
 	server_addr.sin_port = htons(SERVER_CMD_PORT);		/*server TCP port must be network byte ordered */
-
-  // #ifdef DEBUG
-  //   printf("establishCmdConnection::Host's Ip: %s\n", inet_ntoa(*((struct in_addr *)ftp->h->h_addr)));
-  // #endif
 
 	if ((ftp->cmdFD = socket(AF_INET,SOCK_STREAM,0)) < 0) {
     		perror("socket()::Failed opening TCP socket for FTP commands");
@@ -186,7 +183,7 @@ void receiveCmdResponse(FTP* ftp, char* cmdBuff){
     printf("%s", cmdBuff);
     readLine(ftp, cmdBuff);
 	}
-  printf("%s\n", cmdBuff);
+  printf("%s", cmdBuff);
 }
 
 void readLine(FTP* ftp, char* buffer){
@@ -228,6 +225,7 @@ void writeCmd(FTP* ftp, char** cmdArgs){
 }
 
 void addressCat(char* ipFrag1, char* ipFrag2, char* ipFrag3, char* ipFrag4, char* ipAddress){
+  memset(ipAddress, 0, 30);
   strcat(ipAddress, ipFrag1);
   strcat(ipAddress, ".");
   strcat(ipAddress, ipFrag2);
