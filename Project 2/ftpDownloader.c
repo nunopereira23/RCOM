@@ -163,17 +163,32 @@ int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort){
 
 void receiveCmdResponse(FTP* ftp, char* cmdBuff){
   bzero(cmdBuff, CMD_BUFF_LEN);
-	do{
-	  read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN);
-	  printf("%s", cmdBuff);
-	}while(cmdBuff[3] != ' ');  
+	read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN);
 
   if((cmdBuff[0] - '0' != POSITIVE_COMP_REPLY) && 
     (cmdBuff[0] - '0' != POSITIVE_INT_REPLY) && 
     cmdBuff[0] - '0' != POSITIVE_PRE_REPLY){
+    printf("%s", cmdBuff);
     printf("receiveCmdResponse::Server response error\n");
     exit(2);
   }
+  
+  char endControl[5];
+  memcpy(endControl, cmdBuff, 3);
+  endControl[3] = '\0';
+  strcat(endControl, " ");//ControlCode<SP>
+
+  #ifdef DEBUG
+    printf("EndControl(%lu) \"%s\"\n", strlen(endControl), endControl);
+    //printf("Strcmp test %d\n", !strncmp("220 ", endControl, 4));
+  #endif
+
+  while(strncmp(cmdBuff, endControl, 4)){
+	  printf("%s", cmdBuff);
+    bzero(cmdBuff, CMD_BUFF_LEN);
+    read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN);
+	}
+  printf("%s\n", cmdBuff);
 }
 
 void writeCmd(FTP* ftp, char** cmdArgs){
@@ -191,7 +206,7 @@ void writeCmd(FTP* ftp, char** cmdArgs){
   strcat(buff, "\n"); //The server reads the command until a newline
 
   #ifdef DEBUG
-    printf("writeCmd::FullCMD(%u): %s\n", strlen(buff), buff);
+    printf("writeCmd::FullCMD(%lu): %s\n", strlen(buff), buff);
   #endif
 
   write(ftp->cmdFD, buff, strlen(buff));
