@@ -163,7 +163,7 @@ int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort){
 
 void receiveCmdResponse(FTP* ftp, char* cmdBuff){
   bzero(cmdBuff, CMD_BUFF_LEN);
-	read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN);
+	read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN-1);
 
   if((cmdBuff[0] - '0' != POSITIVE_COMP_REPLY) && 
     (cmdBuff[0] - '0' != POSITIVE_INT_REPLY) && 
@@ -180,15 +180,30 @@ void receiveCmdResponse(FTP* ftp, char* cmdBuff){
 
   #ifdef DEBUG
     printf("EndControl(%lu) \"%s\"\n", strlen(endControl), endControl);
-    //printf("Strcmp test %d\n", !strncmp("220 ", endControl, 4));
   #endif
 
-  while(strncmp(cmdBuff, endControl, 4)){
-	  printf("%s", cmdBuff);
-    bzero(cmdBuff, CMD_BUFF_LEN);
-    read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN);
+  while(strncmp(cmdBuff, endControl, 4) != 0){
+    printf("%s", cmdBuff);
+    readLine(ftp, cmdBuff);
 	}
   printf("%s\n", cmdBuff);
+}
+
+void readLine(FTP* ftp, char* buffer){
+  char byte = 0;
+  int i = 0;
+  while(byte != '\n' && byte != '\r'){
+    read(ftp->cmdFD, &byte, 1);
+    buffer[i] = byte;
+    i++;
+  }
+
+  if(byte == '\r'){
+    buffer[i-1] = '\n';
+    read(ftp->cmdFD, &byte, 1);
+  }
+  buffer[i] = '\0';
+  
 }
 
 void writeCmd(FTP* ftp, char** cmdArgs){

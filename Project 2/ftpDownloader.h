@@ -33,6 +33,7 @@ int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort);
 //Command handling functions
 void writeCmd(FTP* ftp, char** cmdArgs);
 void receiveCmdResponse(FTP* ftp, char* cmdBuff);
+void readLine(FTP* ftp, char* buffer);
 
 
 void receiveFile(FTP* ftp);
