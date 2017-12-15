@@ -160,7 +160,7 @@ int establishDataConnection(FTP* ftp, char* ipAddress, int dataPort){
 
 void receiveCmdResponse(FTP* ftp, char* cmdBuff){
   bzero(cmdBuff, CMD_BUFF_LEN);
-	read(ftp->cmdFD, cmdBuff, CMD_BUFF_LEN-1);
+	readLine(ftp, cmdBuff);
 
   if((cmdBuff[0] - '0' != POSITIVE_COMP_REPLY) && 
     (cmdBuff[0] - '0' != POSITIVE_INT_REPLY) && 
